@@ -1,16 +1,74 @@
+import { useState, type FormEvent } from "react";
+import { useNavigate } from "react-router";
+
+import { useAuth } from "../../hooks/useAuth";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
+import Erro from "../../components/ui/Erro";
+
 function Entrar() {
+  const { entrar } = useAuth();
+  const navegar = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  async function handleSubmit(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+
+    setErro("");
+    setCarregando(true);
+
+    try {
+      await entrar(email, senha);
+      navegar("/painel");
+    } catch {
+      setErro("Não foi possível entrar. Verifique seu e-mail e senha.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <section className="w-full max-w-md rounded-xl bg-white p-8 shadow-md">
-        <h1 className="text-3xl font-bold text-slate-900">CATEMP</h1>
+    <main>
+      <section>
+        <h1>CATEMP</h1>
+        <h2>Bem-vindo!</h2>
+        <p>Faça login para gerenciar sua loja.</p>
 
-        <h2 className="mt-6 text-xl font-semibold text-slate-800">
-          Bem-vindo!
-        </h2>
+        <form onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="email">E-mail</label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(evento) => setEmail(evento.target.value)}
+              placeholder="Digite seu e-mail"
+              required
+            />
+          </div>
 
-        <p className="mt-2 text-slate-600">
-          Faça login para gerenciar sua loja.
-        </p>
+          <div>
+            <label htmlFor="senha">Senha</label>
+            <Input
+              id="senha"
+              type="password"
+              value={senha}
+              onChange={(evento) => setSenha(evento.target.value)}
+              placeholder="Digite sua senha"
+              required
+            />
+          </div>
+
+          {erro && <Erro mensagem={erro} />}
+
+          <Button type="submit" disabled={carregando}>
+            {carregando ? "Entrando..." : "Entrar"}
+          </Button>
+        </form>
       </section>
     </main>
   );

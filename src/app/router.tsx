@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import Home from "../pages/publicas/Home";
 import Entrar from "../pages/publicas/Entrar";
 import PainelInicio from "../pages/painel/PainelInicio";
+import FormItem from "../components/painel/FormItem";
 import NaoEncontrada from "../pages/NaoEncontrada";
 
 import RotaProtegida from "./guards/RotaProtegida";
@@ -17,6 +18,7 @@ function AppRouter() {
 
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
+          <Route path="/painel/itens/novo" element={<FormItem />} />
         </Route>
 
         <Route element={<RotaAdmin />}>
