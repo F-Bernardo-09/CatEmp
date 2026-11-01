@@ -5,6 +5,9 @@ import Entrar from "../pages/publicas/Entrar";
 import PainelInicio from "../pages/painel/PainelInicio";
 import NaoEncontrada from "../pages/NaoEncontrada";
 
+import RotaProtegida from "./guards/RotaProtegida";
+import RotaAdmin from "./guards/RotaAdmin";
+
 function AppRouter() {
   return (
     <BrowserRouter>
@@ -12,7 +15,13 @@ function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/entrar" element={<Entrar />} />
 
-        <Route path="/painel" element={<PainelInicio />} />
+        <Route element={<RotaProtegida />}>
+          <Route path="/painel" element={<PainelInicio />} />
+        </Route>
+
+        <Route element={<RotaAdmin />}>
+          {/* As rotas administrativas serão adicionadas aqui. */}
+        </Route>
 
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
