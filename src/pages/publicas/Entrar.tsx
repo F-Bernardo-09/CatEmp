@@ -32,15 +32,26 @@ function Entrar() {
   }
 
   return (
-    <main>
-      <section>
-        <h1>CATEMP</h1>
-        <h2>Bem-vindo!</h2>
-        <p>Faça login para gerenciar sua loja.</p>
+    <main className="flex min-h-screen items-center justify-center bg-page p-6">
+      <section className="w-full max-w-md rounded-card bg-surface p-8 shadow-lg sm:p-10">
+        <header className="mb-8 text-center">
+          <h1 className="mb-8 text-3xl font-bold tracking-tight text-text">
+            CATEMP
+          </h1>
 
-        <form onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email">E-mail</label>
+          <h2 className="text-2xl font-semibold text-text">Bem-vindo!</h2>
+
+          <p className="mt-2 text-sm text-text-secondary">
+            Faça login para gerenciar sua loja.
+          </p>
+        </header>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="email" className="text-sm font-medium text-text">
+              E-mail
+            </label>
+
             <Input
               id="email"
               type="email"
@@ -51,8 +62,11 @@ function Entrar() {
             />
           </div>
 
-          <div>
-            <label htmlFor="senha">Senha</label>
+          <div className="flex flex-col gap-2">
+            <label htmlFor="senha" className="text-sm font-medium text-text">
+              Senha
+            </label>
+
             <Input
               id="senha"
               type="password"
@@ -65,9 +79,11 @@ function Entrar() {
 
           {erro && <Erro mensagem={erro} />}
 
-          <Button type="submit" disabled={carregando}>
-            {carregando ? "Entrando..." : "Entrar"}
-          </Button>
+          <div className="pt-2">
+            <Button type="submit" disabled={carregando}>
+              {carregando ? "Entrando..." : "Entrar"}
+            </Button>
+          </div>
         </form>
       </section>
     </main>

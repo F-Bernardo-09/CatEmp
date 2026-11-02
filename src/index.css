@@ -1,1 +1,47 @@
 @import "tailwindcss";
+
+:root {
+  /* Cores principais */
+  --color-page: #1f1f1f;
+  --color-surface: #e5e5e5;
+  --color-card: #ffffff;
+
+  /* Cores de texto */
+  --color-text: #111111;
+  --color-text-secondary: #737373;
+  --color-text-inverse: #ffffff;
+
+  /* Cores de interação */
+  --color-primary: #111111;
+  --color-primary-hover: #333333;
+  --color-border: #d4d4d4;
+
+  /* Tipografia */
+  --font-primary: Arial, Helvetica, sans-serif;
+
+  /* Bordas arredondadas */
+  --radius-input: 9999px;
+  --radius-button: 9999px;
+  --radius-card: 16px;
+}
+
+/* Integração das variáveis com o Tailwind 4 */
+@theme inline {
+  --color-page: var(--color-page);
+  --color-surface: var(--color-surface);
+  --color-card: var(--color-card);
+
+  --color-text: var(--color-text);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-inverse: var(--color-text-inverse);
+
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-border: var(--color-border);
+
+  --font-sans: var(--font-primary);
+
+  --radius-input: var(--radius-input);
+  --radius-button: var(--radius-button);
+  --radius-card: var(--radius-card);
+}

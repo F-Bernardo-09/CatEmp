@@ -5,7 +5,7 @@ interface ErroProps {
 function Erro({ mensagem }: ErroProps) {
   return (
     <div role="alert">
-      <p>{mensagem}</p>
+      <p className="text-xs text-red-600">{mensagem}</p>
     </div>
   );
 }

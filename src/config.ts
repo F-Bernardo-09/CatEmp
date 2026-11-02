@@ -1,7 +1,8 @@
-function getEnvVariable(value: string, name: string): string {
+function getEnvVariable(value: string | undefined, name: string): string {
   if (!value) {
     throw new Error(`Variável de ambiente não configurada: ${name}`);
   }
+
   return value;
 }
 
