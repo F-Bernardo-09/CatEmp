@@ -20,8 +20,8 @@
   --font-primary: Arial, Helvetica, sans-serif;
 
   /* Bordas arredondadas */
-  --radius-input: 9999px;
-  --radius-button: 9999px;
+  --radius-input: 20px;
+  --radius-button: 50px;
   --radius-card: 16px;
 }
 
