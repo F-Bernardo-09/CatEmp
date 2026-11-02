@@ -16,14 +16,15 @@ function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/entrar" element={<Entrar />} />
 
+        {/* Pré-visualização sem autenticação */}
+        <Route path="/preview-item" element={<FormItem />} />
+
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
           <Route path="/painel/itens/novo" element={<FormItem />} />
         </Route>
 
-        <Route element={<RotaAdmin />}>
-          {/* As rotas administrativas serão adicionadas aqui. */}
-        </Route>
+        <Route element={<RotaAdmin />}>{/* Rotas administrativas */}</Route>
 
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
