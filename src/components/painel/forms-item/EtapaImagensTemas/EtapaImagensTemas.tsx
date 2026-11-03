@@ -9,10 +9,14 @@ interface EtapaImagensTemasProps {
   etapaRef: Ref<HTMLFieldSetElement>;
   imagens: ImagemItem[];
   temasDisponiveis: string[];
+  erro?: string;
   onAdicionarImagens: (arquivos: File[]) => void;
   /** Normaliza e registra o tema. Retorna `null` quando o nome é inválido. */
   onAdicionarTema: (tema: string) => string | null;
   onAtualizarTema: (id: string, tema: string) => void;
+  onAtualizarTextoAlternativo: (id: string, texto: string) => void;
+  onDefinirPrincipal: (id: string) => void;
+  onMoverImagem: (id: string, deslocamento: -1 | 1) => void;
   onRemoverImagem: (id: string) => void;
 }
 
@@ -20,9 +24,13 @@ function EtapaImagensTemas({
   etapaRef,
   imagens,
   temasDisponiveis,
+  erro = "",
   onAdicionarImagens,
   onAdicionarTema,
   onAtualizarTema,
+  onAtualizarTextoAlternativo,
+  onDefinirPrincipal,
+  onMoverImagem,
   onRemoverImagem,
 }: EtapaImagensTemasProps) {
   const [imagemEditandoId, setImagemEditandoId] = useState<string | null>(null);
@@ -61,21 +69,33 @@ function EtapaImagensTemas({
           </p>
 
           <ul className="flex flex-col gap-3">
-            {imagens.map((imagem) => (
+            {imagens.map((imagem, indice) => (
               <CartaoImagem
                 key={imagem.id}
                 imagem={imagem}
+                indice={indice}
+                total={total}
                 temasDisponiveis={temasDisponiveis}
                 editandoTema={imagemEditandoId === imagem.id}
                 onAbrirEditor={() => setImagemEditandoId(imagem.id)}
                 onFecharEditor={() => setImagemEditandoId(null)}
                 onSelecionarTema={(tema) => selecionarTema(imagem.id, tema)}
                 onCriarTema={(nome) => criarTema(imagem.id, nome)}
+                onAtualizarTextoAlternativo={(texto) =>
+                  onAtualizarTextoAlternativo(imagem.id, texto)
+                }
+                onDefinirPrincipal={() => onDefinirPrincipal(imagem.id)}
+                onMover={(deslocamento) => onMoverImagem(imagem.id, deslocamento)}
                 onRemover={() => onRemoverImagem(imagem.id)}
               />
             ))}
           </ul>
         </div>
+      )}
+      {erro && (
+        <p role="alert" className="form-error">
+          {erro}
+        </p>
       )}
     </fieldset>
   );

@@ -5,11 +5,16 @@ import SeletorTema from "./SeletorTema";
 
 interface CartaoImagemProps {
   imagem: ImagemItem;
+  indice: number;
+  total: number;
   temasDisponiveis: string[];
   editandoTema: boolean;
   onAbrirEditor: () => void;
   onFecharEditor: () => void;
   onSelecionarTema: (tema: string) => void;
+  onAtualizarTextoAlternativo: (texto: string) => void;
+  onDefinirPrincipal: () => void;
+  onMover: (deslocamento: -1 | 1) => void;
   /** Retorna `true` quando o tema foi criado e aplicado à imagem. */
   onCriarTema: (nome: string) => boolean;
   onRemover: () => void;
@@ -17,12 +22,17 @@ interface CartaoImagemProps {
 
 function CartaoImagem({
   imagem,
+  indice,
+  total,
   temasDisponiveis,
   editandoTema,
   onAbrirEditor,
   onFecharEditor,
   onSelecionarTema,
   onCriarTema,
+  onAtualizarTextoAlternativo,
+  onDefinirPrincipal,
+  onMover,
   onRemover,
 }: CartaoImagemProps) {
   return (
@@ -34,9 +44,16 @@ function CartaoImagem({
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
-          <p className="truncate text-sm font-medium text-text">
-            {imagem.arquivo.name}
-          </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">
+              {imagem.arquivo.name}
+            </p>
+            {imagem.principal && (
+              <span className="text-xs font-semibold text-primary">
+                Foto principal
+              </span>
+            )}
+          </div>
           <button
             type="button"
             aria-label={`Remover ${imagem.arquivo.name}`}
@@ -47,6 +64,21 @@ function CartaoImagem({
           </button>
         </div>
 
+        <label className="form-field">
+          <span className="form-label">Texto alternativo</span>
+          <input
+            type="text"
+            className="form-control"
+            value={imagem.textoAlternativo}
+            onChange={(event) => onAtualizarTextoAlternativo(event.target.value)}
+            maxLength={255}
+            pattern={String.raw`.*\S.*`}
+            placeholder="Descreva a imagem"
+            title="Informe um texto alternativo que não contenha apenas espaços."
+            required
+          />
+        </label>
+
         <SeletorTema
           imagem={imagem}
           temasDisponiveis={temasDisponiveis}
@@ -56,6 +88,34 @@ function CartaoImagem({
           onSelecionar={onSelecionarTema}
           onCriar={onCriarTema}
         />
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            disabled={indice === 0}
+            onClick={() => onMover(-1)}
+            className="text-sm font-medium text-text underline disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Mover para cima
+          </button>
+          <button
+            type="button"
+            disabled={indice === total - 1}
+            onClick={() => onMover(1)}
+            className="text-sm font-medium text-text underline disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Mover para baixo
+          </button>
+          {!imagem.principal && (
+            <button
+              type="button"
+              onClick={onDefinirPrincipal}
+              className="text-sm font-medium text-text underline"
+            >
+              Definir como principal
+            </button>
+          )}
+        </div>
       </div>
     </li>
   );

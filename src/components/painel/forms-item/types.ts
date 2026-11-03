@@ -4,6 +4,8 @@ export interface ImagemItem {
   id: string;
   arquivo: File;
   tema: string;
+  textoAlternativo: string;
+  principal: boolean;
 }
 
 export interface AdicionalServico {
