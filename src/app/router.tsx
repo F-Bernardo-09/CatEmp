@@ -14,6 +14,7 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/preview" element={<Home />} />
         <Route path="/entrar" element={<Entrar />} />
 
         {/* Pré-visualização sem autenticação */}
