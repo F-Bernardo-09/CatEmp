@@ -4,7 +4,7 @@ import type { KeyboardEvent } from "react";
 import { IconeCheck, IconeMais, IconeTag } from "../../../ui/icones";
 import type { ImagemItem } from "../types";
 
-const TAMANHO_MAXIMO_TEMA = 100;
+const TAMANHO_MAXIMO_TEMA = 60;
 
 function classeChip(selecionado: boolean) {
   const base =
