@@ -127,9 +127,9 @@ function EtapaDadosBasicos({
         id="preco"
         label={
           tipo === "servico"
-            ? "Valor mínimo (R$) *"
+            ? "Valor mínimo (R$) "
             : tipo === "produto"
-              ? "Valor fixo (R$) *"
+              ? "Valor do produto (R$) "
               : "Valor (R$) *"
         }
         error={erros.preco}
