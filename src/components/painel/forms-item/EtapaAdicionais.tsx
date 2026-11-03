@@ -1,9 +1,11 @@
 import { useState } from "react";
-import type { ChangeEvent, FormEvent, Ref } from "react";
+import type { FormEvent, Ref } from "react";
 
-import { MiniaturaImagem } from "./MiniaturaImagem";
+import { IconeLixeira, IconeMais } from "../../ui/icones";
+import { ZonaUploadImagem } from "../../ui/upload-imagem";
 import CampoFormulario from "./CampoFormulario";
 import { obterMensagemValidacao } from "./estilos";
+import { MiniaturaImagem } from "./MiniaturaImagem";
 import type { AdicionalServico } from "./types";
 
 interface EtapaAdicionaisProps {
@@ -26,24 +28,8 @@ function EtapaAdicionais({
 }: EtapaAdicionaisProps) {
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  function handleImagemChange(
-    id: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const imagem = event.currentTarget.files?.[0] ?? null;
-    const tipoAceito =
-      imagem &&
-      ["image/jpeg", "image/png", "image/webp"].includes(imagem.type);
-    const chave = `imagem-${id}`;
-    const mensagem = imagem && !tipoAceito
-      ? "Use uma imagem no formato JPEG, PNG ou WebP."
-      : "";
-
-    event.currentTarget.setCustomValidity(mensagem);
+  function definirErro(chave: string, mensagem: string) {
     setErros((errosAtuais) => ({ ...errosAtuais, [chave]: mensagem }));
-    onAtualizarAdicional(id, {
-      imagem: tipoAceito ? imagem : null,
-    });
   }
 
   function validarCampo(
@@ -53,118 +39,135 @@ function EtapaAdicionais({
   ) {
     const mensagem = obterMensagemValidacao(event.currentTarget, nomeCampo);
     event.currentTarget.setCustomValidity(mensagem);
-    setErros((errosAtuais) => ({ ...errosAtuais, [chave]: mensagem }));
+    definirErro(chave, mensagem);
   }
 
-  function limparErro(
-    chave: string,
-    event: FormEvent<HTMLInputElement>,
-  ) {
+  function limparErro(chave: string, event: FormEvent<HTMLInputElement>) {
     event.currentTarget.setCustomValidity("");
-    setErros((errosAtuais) => ({ ...errosAtuais, [chave]: "" }));
+    definirErro(chave, "");
+  }
+
+  function handleImagem(id: string, [imagem]: File[]) {
+    definirErro(`imagem-${id}`, "");
+    onAtualizarAdicional(id, { imagem });
   }
 
   return (
     <fieldset ref={etapaRef} className="form-step">
-      <legend className="form-step-title">
-        Adicionais do serviço
-      </legend>
-      {adicionais.map((adicional, indice) => (
-        <article
-          key={adicional.id}
-          className="flex flex-col gap-4 rounded-card border border-border p-4"
-        >
-          <h3 className="font-semibold text-text">Adicional {indice + 1}</h3>
-          <div>
-            <CampoFormulario
-              id={`imagem-adicional-${adicional.id}`}
-              label="Imagem"
-              error={erros[`imagem-${adicional.id}`]}
-              controlProps={{
-                type: "file",
-                accept: ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp",
-                required: true,
-                onInvalid: (event) =>
+      <legend className="form-step-title">Adicionais do serviço</legend>
+
+      {adicionais.length === 0 && (
+        <p className="text-sm text-text-secondary">
+          Nenhum adicional adicionado.
+        </p>
+      )}
+
+      {adicionais.length > 0 && (
+        <ul className="flex flex-col gap-4">
+          {adicionais.map((adicional, indice) => (
+            <li
+              key={adicional.id}
+              className="flex flex-col gap-4 rounded-card border border-border bg-card p-4"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold text-text">
+                  Adicional {indice + 1}
+                </h3>
+                <button
+                  type="button"
+                  aria-label={`Remover adicional ${indice + 1}`}
+                  onClick={() => onRemoverAdicional(adicional.id)}
+                  className="-m-1.5 shrink-0 rounded-full p-1.5 text-text-secondary transition-colors hover:bg-surface hover:text-text"
+                >
+                  <IconeLixeira className="size-5" />
+                </button>
+              </div>
+
+              <ZonaUploadImagem
+                id={`imagem-adicional-${adicional.id}`}
+                required
+                erro={erros[`imagem-${adicional.id}`]}
+                previa={
+                  adicional.imagem && (
+                    <MiniaturaImagem
+                      arquivo={adicional.imagem}
+                      alt={`Pré-visualização do adicional ${indice + 1}`}
+                    />
+                  )
+                }
+                onArquivos={(arquivos) => handleImagem(adicional.id, arquivos)}
+                onInvalid={(event) =>
                   validarCampo(
                     `imagem-${adicional.id}`,
                     "a imagem do adicional",
                     event,
-                  ),
-                onChange: (event) => handleImagemChange(adicional.id, event),
-              }}
-            />
-            {adicional.imagem && (
-              <MiniaturaImagem
-                arquivo={adicional.imagem}
-                alt={`Pré-visualização do adicional ${indice + 1}`}
+                  )
+                }
               />
-            )}
-          </div>
-          <CampoFormulario
-            id={`nome-adicional-${adicional.id}`}
-            label="Nome"
-            error={erros[`nome-${adicional.id}`]}
-            counter={`${adicional.nome.length}/100`}
-            controlProps={{
-              type: "text",
-              maxLength: 100,
-              pattern: String.raw`.*\S.*`,
-              title: "O nome não pode conter apenas espaços.",
-              required: true,
-              value: adicional.nome,
-              onInvalid: (event) =>
-                validarCampo(
-                  `nome-${adicional.id}`,
-                  "o nome do adicional",
-                  event,
-                ),
-              onChange: (event) => {
-                limparErro(`nome-${adicional.id}`, event);
-                onAtualizarAdicional(adicional.id, {
-                  nome: event.target.value,
-                });
-              },
-            }}
-          />
-          <CampoFormulario
-            id={`preco-adicional-${adicional.id}`}
-            label="Preço mínimo (R$)"
-            error={erros[`preco-${adicional.id}`]}
-            controlProps={{
-              type: "number",
-              min: "0",
-              step: "0.01",
-              required: true,
-              value: adicional.precoMinimo,
-              onInvalid: (event) =>
-                validarCampo(
-                  `preco-${adicional.id}`,
-                  "o preço mínimo",
-                  event,
-                ),
-              onChange: (event) => {
-                limparErro(`preco-${adicional.id}`, event);
-                onAtualizarAdicional(adicional.id, {
-                  precoMinimo: event.target.value,
-                });
-              },
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => onRemoverAdicional(adicional.id)}
-            className="self-start text-sm font-medium text-text-secondary underline"
-          >
-            Remover adicional
-          </button>
-        </article>
-      ))}
+
+              <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
+                <CampoFormulario
+                  id={`nome-adicional-${adicional.id}`}
+                  label="Nome"
+                  error={erros[`nome-${adicional.id}`]}
+                  counter={`${adicional.nome.length}/100`}
+                  controlProps={{
+                    type: "text",
+                    maxLength: 100,
+                    pattern: String.raw`.*\S.*`,
+                    title: "O nome não pode conter apenas espaços.",
+                    required: true,
+                    value: adicional.nome,
+                    onInvalid: (event) =>
+                      validarCampo(
+                        `nome-${adicional.id}`,
+                        "o nome do adicional",
+                        event,
+                      ),
+                    onChange: (event) => {
+                      limparErro(`nome-${adicional.id}`, event);
+                      onAtualizarAdicional(adicional.id, {
+                        nome: event.target.value,
+                      });
+                    },
+                  }}
+                />
+                <CampoFormulario
+                  id={`preco-adicional-${adicional.id}`}
+                  label="Preço mínimo (R$)"
+                  error={erros[`preco-${adicional.id}`]}
+                  controlProps={{
+                    type: "number",
+                    min: "0",
+                    step: "0.01",
+                    required: true,
+                    value: adicional.precoMinimo,
+                    onInvalid: (event) =>
+                      validarCampo(
+                        `preco-${adicional.id}`,
+                        "o preço mínimo",
+                        event,
+                      ),
+                    onChange: (event) => {
+                      limparErro(`preco-${adicional.id}`, event);
+                      onAtualizarAdicional(adicional.id, {
+                        precoMinimo: event.target.value,
+                      });
+                    },
+                  }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <button
         type="button"
         onClick={onAdicionarAdicional}
-        className="self-start rounded-button border border-border px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
+        className="inline-flex items-center gap-2 self-start rounded-button border border-border px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
       >
+        <IconeMais />
         Adicionar adicional
       </button>
     </fieldset>
