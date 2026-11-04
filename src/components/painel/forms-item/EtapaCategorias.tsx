@@ -12,6 +12,7 @@ interface EtapaCategoriasProps {
 }
 
 const LIMITE_CATEGORIAS = 5;
+const TAMANHO_MAXIMO_CATEGORIA = 60;
 
 function EtapaCategorias({
   etapaRef,
@@ -88,12 +89,12 @@ function EtapaCategorias({
           id="novaCategoria"
           label="Nova categoria"
           error={erroCategoria}
-          counter={`${novaCategoria.length}/100`}
+          counter={`${novaCategoria.length}/${TAMANHO_MAXIMO_CATEGORIA}`}
           containerClassName="min-w-0 flex-1"
           controlProps={{
             name: "novaCategoria",
             type: "text",
-            maxLength: 100,
+            maxLength: TAMANHO_MAXIMO_CATEGORIA,
             pattern: String.raw`.*\S.*`,
             title: "O nome da categoria não pode conter apenas espaços.",
             placeholder: "Nome",

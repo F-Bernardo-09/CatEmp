@@ -16,6 +16,7 @@ function FormItem({ itemId }: FormItemProps) {
     dados,
     categoriasDisponiveis,
     temasDisponiveis,
+    erroImagens,
     totalEtapas,
     etapaConfig,
     progresso,
@@ -23,6 +24,9 @@ function FormItem({ itemId }: FormItemProps) {
     alternarCategoria,
     adicionarCategoria,
     adicionarImagens,
+    atualizarTextoAlternativo,
+    definirImagemPrincipal,
+    moverImagem,
     atualizarTemaImagem,
     adicionarTema,
     removerImagem,
@@ -88,9 +92,13 @@ function FormItem({ itemId }: FormItemProps) {
               etapaRef={etapaRef}
               imagens={dados.imagens}
               temasDisponiveis={temasDisponiveis}
+              erro={erroImagens}
               onAdicionarImagens={adicionarImagens}
               onAdicionarTema={adicionarTema}
               onAtualizarTema={atualizarTemaImagem}
+              onAtualizarTextoAlternativo={atualizarTextoAlternativo}
+              onDefinirPrincipal={definirImagemPrincipal}
+              onMoverImagem={moverImagem}
               onRemoverImagem={removerImagem}
             />
           )}
