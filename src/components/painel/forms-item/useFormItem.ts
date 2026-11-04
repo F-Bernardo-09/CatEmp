@@ -1,6 +1,8 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
+import { supabase } from "../../../lib/supabase";
+import { listarTemas } from "../../../services/temas";
 import type { AdicionalServico, DadosFormulario } from "./types";
 
 type EtapaId = "basicos" | "imagens" | "categorias" | "adicionais";
@@ -39,6 +41,36 @@ function useFormItem() {
     [],
   );
   const [temasDisponiveis, setTemasDisponiveis] = useState<string[]>([]);
+  const [erroImagens, setErroImagens] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarTemas() {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error) {
+        console.error("Erro ao verificar usuário para carregar temas:", error);
+        return;
+      }
+      if (!user) return;
+
+      try {
+        const temas = await listarTemas();
+        if (ativo) setTemasDisponiveis(temas);
+      } catch (erro) {
+        console.error("Erro ao carregar temas:", erro);
+      }
+    }
+
+    void carregarTemas();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   const etapas =
     dados.tipo === "servico"
@@ -110,17 +142,54 @@ function useFormItem() {
   }
 
   function adicionarImagens(arquivos: File[]) {
+    setErroImagens("");
     setDados((dadosAtuais) => ({
       ...dadosAtuais,
       imagens: [
         ...dadosAtuais.imagens,
-        ...arquivos.map((arquivo) => ({
+        ...arquivos.map((arquivo, indice) => ({
           id: crypto.randomUUID(),
           arquivo,
           tema: "",
+          textoAlternativo: "",
+          principal: dadosAtuais.imagens.length === 0 && indice === 0,
         })),
       ],
     }));
+  }
+
+  function atualizarTextoAlternativo(id: string, textoAlternativo: string) {
+    setDados((dadosAtuais) => ({
+      ...dadosAtuais,
+      imagens: dadosAtuais.imagens.map((imagem) =>
+        imagem.id === id ? { ...imagem, textoAlternativo } : imagem,
+      ),
+    }));
+  }
+
+  function definirImagemPrincipal(id: string) {
+    setDados((dadosAtuais) => ({
+      ...dadosAtuais,
+      imagens: dadosAtuais.imagens.map((imagem) => ({
+        ...imagem,
+        principal: imagem.id === id,
+      })),
+    }));
+  }
+
+  function moverImagem(id: string, deslocamento: -1 | 1) {
+    setDados((dadosAtuais) => {
+      const indice = dadosAtuais.imagens.findIndex((imagem) => imagem.id === id);
+      const destino = indice + deslocamento;
+
+      if (indice < 0 || destino < 0 || destino >= dadosAtuais.imagens.length) {
+        return dadosAtuais;
+      }
+
+      const imagens = [...dadosAtuais.imagens];
+      [imagens[indice], imagens[destino]] = [imagens[destino], imagens[indice]];
+      return { ...dadosAtuais, imagens };
+    });
   }
 
   function atualizarTemaImagem(id: string, tema: string) {
@@ -151,10 +220,13 @@ function useFormItem() {
   }
 
   function removerImagem(id: string) {
-    setDados((dadosAtuais) => ({
-      ...dadosAtuais,
-      imagens: dadosAtuais.imagens.filter((imagem) => imagem.id !== id),
-    }));
+    setDados((dadosAtuais) => {
+      const imagens = dadosAtuais.imagens.filter((imagem) => imagem.id !== id);
+      if (imagens.length > 0 && !imagens.some((imagem) => imagem.principal)) {
+        imagens[0] = { ...imagens[0], principal: true };
+      }
+      return { ...dadosAtuais, imagens };
+    });
   }
 
   function adicionarAdicional() {
@@ -194,8 +266,14 @@ function useFormItem() {
   }
 
   function avancarEtapa() {
+    if (etapaConfig?.id === "imagens" && dados.imagens.length === 0) {
+      setErroImagens("Adicione pelo menos uma foto para continuar.");
+      return;
+    }
+
     if (!etapaRef.current?.reportValidity()) return;
 
+    setErroImagens("");
     setEtapaAtual((etapa) => Math.min(etapa + 1, totalEtapas));
   }
 
@@ -214,6 +292,7 @@ function useFormItem() {
     dados,
     categoriasDisponiveis,
     temasDisponiveis,
+    erroImagens,
     etapas,
     totalEtapas,
     etapaConfig,
@@ -222,6 +301,9 @@ function useFormItem() {
     alternarCategoria,
     adicionarCategoria,
     adicionarImagens,
+    atualizarTextoAlternativo,
+    definirImagemPrincipal,
+    moverImagem,
     atualizarTemaImagem,
     adicionarTema,
     removerImagem,

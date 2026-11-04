@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router";
 import Home from "../pages/publicas/Home";
 import Entrar from "../pages/publicas/Entrar";
 import PainelInicio from "../pages/painel/PainelInicio";
+import Categorias from "../pages/painel/Categorias";
 import FormItem from "../components/painel/FormItem";
 import NaoEncontrada from "../pages/NaoEncontrada";
 
@@ -22,6 +23,7 @@ function AppRouter() {
 
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
+          <Route path="/painel/categorias" element={<Categorias />} />
           <Route path="/painel/itens/novo" element={<FormItem />} />
         </Route>
 
