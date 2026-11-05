@@ -29,8 +29,14 @@ function Entrar() {
       } else {
         navegar("/painel");
       }
-    } catch {
-      setErro("Não foi possível entrar. Verifique seu e-mail e senha.");
+    } catch (erroLogin) {
+      console.error("Erro ao entrar:", erroLogin);
+      setErro(
+        erroLogin instanceof Error &&
+          erroLogin.message === "A conta não possui um perfil ativo."
+          ? "Não foi possível acessar esta conta. Tente novamente ou fale com o suporte."
+          : "Não foi possível entrar. Verifique seu e-mail e senha ou tente novamente.",
+      );
     } finally {
       setCarregando(false);
     }
