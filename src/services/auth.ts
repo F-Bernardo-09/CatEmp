@@ -11,7 +11,16 @@ export async function entrar(email: string, senha: string) {
     throw error;
   }
 
-  return data;
+  const perfil = await obterPerfil(data.user.id);
+
+  if (!perfil || perfil.situacao !== "ativa") {
+    const { error: erroSaida } = await supabase.auth.signOut();
+    if (erroSaida) throw erroSaida;
+
+    throw new Error("A conta não possui um perfil ativo.");
+  }
+
+  return { usuario: data.user, perfil };
 }
 
 export async function sair() {

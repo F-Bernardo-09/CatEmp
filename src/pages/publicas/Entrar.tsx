@@ -22,8 +22,13 @@ function Entrar() {
     setCarregando(true);
 
     try {
-      await entrar(email, senha);
-      navegar("/painel");
+      const perfil = await entrar(email, senha);
+
+      if (perfil.papel === "admin") {
+        navegar("/admin/tokens");
+      } else {
+        navegar("/painel");
+      }
     } catch {
       setErro("Não foi possível entrar. Verifique seu e-mail e senha.");
     } finally {
