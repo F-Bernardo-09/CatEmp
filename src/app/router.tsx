@@ -18,12 +18,8 @@ function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/preview" element={<Home />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/cadastro" element={<Cadastro />} />
-
-        {/* Pré-visualização sem autenticação */}
-        <Route path="/preview-item" element={<FormItem />} />
 
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
