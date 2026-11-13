@@ -1,10 +1,13 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 
 import Home from "../pages/publicas/Home";
+import Buscar from "../pages/publicas/Buscar";
 import Entrar from "../pages/publicas/Entrar";
 import Cadastro from "../pages/publicas/Cadastro";
 import Tokens from "../pages/admin/Tokens";
 import PainelInicio from "../pages/painel/PainelInicio";
+import PerfilLoja from "../pages/painel/PerfilLoja";
+import ItensLista from "../pages/painel/ItensLista";
 import Categorias from "../pages/painel/Categorias";
 import Temas from "../pages/painel/Temas";
 import FormItem from "../components/painel/FormItem";
@@ -19,6 +22,7 @@ function AppRouter() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/preview" element={<Home />} />
+        <Route path="/buscar" element={<Buscar />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/cadastro" element={<Cadastro />} />
 
@@ -27,8 +31,10 @@ function AppRouter() {
 
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
+          <Route path="/painel/loja" element={<PerfilLoja />} />
           <Route path="/painel/categorias" element={<Categorias />} />
           <Route path="/painel/temas" element={<Temas />} />
+          <Route path="/painel/itens" element={<ItensLista />} />
           <Route path="/painel/itens/novo" element={<FormItem />} />
         </Route>
 
