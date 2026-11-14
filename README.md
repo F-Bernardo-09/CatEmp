@@ -4,7 +4,7 @@ Aplicação para gestão de acervo, catálogo e pedidos de aluguel/venda.
 
 ## Requisitos
 
-- Node.js 20+
+- Node.js 20.19+
 - npm
 - Supabase CLI
 - Git
