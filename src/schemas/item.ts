@@ -46,3 +46,18 @@ export interface ItemCatalogoResumo {
   foto_url?: string;
   em_destaque: boolean;
 }
+
+export interface FotoPublica {
+  url: string;
+  texto_alternativo: string;
+  principal: boolean;
+  posicao: number;
+}
+
+export interface ItemPublico extends ItemBase {
+  loja_slug: string;
+  loja_nome: string;
+  loja_whatsapp: string;
+  fotos: FotoPublica[];
+  categorias: string[];
+}

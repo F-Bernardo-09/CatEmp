@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import type { ItemCatalogoResumo } from "../schemas/item";
+import type { ItemCatalogoResumo, ItemPublico } from "../schemas/item";
 
 export interface FiltrosCatalogo {
   modalidade?: "aluguel" | "venda";
@@ -100,5 +100,101 @@ export async function listarItensCatalogo(
   return {
     itens: itensFormatados,
     temMais: totalItens > page * limit,
+  };
+}
+
+export async function listarCategoriasPublicas(
+  modalidade: "aluguel" | "venda",
+): Promise<{ id: string; nome: string; slug: string }[]> {
+  const { data, error } = await supabase
+    .from("categorias")
+    .select("id, nome, slug")
+    .eq("modalidade", modalidade)
+    .eq("situacao", "ativa")
+    .order("nome");
+
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function buscarItemPublico(id: string): Promise<ItemPublico | null> {
+  const { data: item, error } = await supabase
+    .from("itens")
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, altura, largura, profundidade, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .eq("id", id)
+    .eq("situacao", "disponivel")
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!item) return null;
+
+  const { data: loja, error: erroLoja } = await supabase
+    .from("lojas")
+    .select("slug, nome_comercial, whatsapp")
+    .eq("id", item.loja_id)
+    .eq("situacao", "ativa")
+    .maybeSingle();
+
+  if (erroLoja) throw erroLoja;
+  if (!loja) return null;
+
+  const { data: fotosRaw, error: erroFotos } = await supabase
+    .from("fotos")
+    .select("caminho_storage, texto_alternativo, principal, posicao")
+    .eq("item_id", id)
+    .order("posicao", { ascending: true });
+
+  if (erroFotos) throw erroFotos;
+
+  const fotos = (fotosRaw ?? []).map((foto) => ({
+    url: supabase.storage.from("fotos").getPublicUrl(foto.caminho_storage).data.publicUrl,
+    texto_alternativo: foto.texto_alternativo,
+    principal: foto.principal,
+    posicao: foto.posicao,
+  }));
+
+  const { data: itemCategorias, error: erroCategorias } = await supabase
+    .from("item_categorias")
+    .select("categoria_id")
+    .eq("item_id", id);
+
+  if (erroCategorias) throw erroCategorias;
+
+  let categorias: string[] = [];
+  if (itemCategorias && itemCategorias.length > 0) {
+    const categoriaIds = itemCategorias.map((ic) => ic.categoria_id);
+    const { data: cats, error: erroCats } = await supabase
+      .from("categorias")
+      .select("nome")
+      .in("id", categoriaIds);
+
+    if (erroCats) throw erroCats;
+    categorias = (cats ?? []).map((c) => c.nome);
+  }
+
+  return {
+    id: item.id,
+    loja_id: item.loja_id,
+    codigo_publico: item.codigo_publico,
+    tipo: item.tipo,
+    modalidade: item.modalidade,
+    titulo: item.titulo,
+    descricao: item.descricao,
+    altura: Number(item.altura),
+    largura: Number(item.largura),
+    profundidade: Number(item.profundidade),
+    preco_base: Number(item.preco_base),
+    preco_reposicao: Number(item.preco_reposicao),
+    situacao: item.situacao,
+    em_destaque: item.em_destaque,
+    criado_em: item.criado_em,
+    atualizado_em: item.atualizado_em,
+    loja_slug: loja.slug,
+    loja_nome: loja.nome_comercial,
+    loja_whatsapp: loja.whatsapp,
+    fotos,
+    categorias,
   };
 }

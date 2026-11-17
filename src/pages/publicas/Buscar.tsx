@@ -4,26 +4,7 @@ import { Link, useSearchParams } from "react-router";
 import CabecalhoPublico from "../../components/layout/CabecalhoPublico";
 import Rodape from "../../components/layout/Rodape";
 import type { ItemCatalogoResumo } from "../../schemas/item";
-import { listarItensCatalogo } from "../../services/catalogo";
-
-const categoriasPorModalidade = {
-  aluguel: [
-    "Mesas diversas",
-    "Vasos de flores",
-    "Cortinas",
-    "Tapetes",
-    "Bandejas",
-    "Arcos temáticos",
-    "Luminárias",
-    "Balões",
-    "Cilindros",
-    "Bancos",
-    "Pratos",
-    "Talheres",
-    "Ursos",
-  ],
-  venda: ["Colchas de cama", "Cortinas"],
-};
+import { listarCategoriasPublicas, listarItensCatalogo } from "../../services/catalogo";
 
 function formatarPreco(valor: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -39,6 +20,7 @@ function Buscar() {
   const [carregandoMais, setCarregandoMais] = useState(false);
   const [temMais, setTemMais] = useState(false);
   const [pagina, setPagina] = useState(1);
+  const [categorias, setCategorias] = useState<{ id: string; nome: string; slug: string }[]>([]);
 
   const modalidade =
     searchParams.get("modalidade") === "venda" ? "venda" : "aluguel";
@@ -76,6 +58,10 @@ function Buscar() {
     void carregarCatalogo(1);
   }, [modalidade, categoria, busca]);
 
+  useEffect(() => {
+    void listarCategoriasPublicas(modalidade).then(setCategorias).catch(console.error);
+  }, [modalidade]);
+
   function alterarFiltro(chave: "modalidade" | "categoria" | "q", valor: string) {
     const params = new URLSearchParams(searchParams);
 
@@ -91,8 +77,6 @@ function Buscar() {
 
     setSearchParams(params);
   }
-
-  const categoriasAtuais = categoriasPorModalidade[modalidade];
 
   return (
     <div className="flex min-h-screen flex-col bg-page text-text">
@@ -144,9 +128,9 @@ function Buscar() {
                 onChange={(evento) => alterarFiltro("categoria", evento.target.value)}
               >
                 <option value="">Todas</option>
-                {categoriasAtuais.map((nomeCategoria) => (
-                  <option key={nomeCategoria} value={nomeCategoria}>
-                    {nomeCategoria}
+                {categorias.map((cat) => (
+                  <option key={cat.id} value={cat.nome}>
+                    {cat.nome}
                   </option>
                 ))}
               </select>
@@ -165,7 +149,7 @@ function Buscar() {
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {itens.map((item) => (
                 <article key={item.id} className="overflow-hidden rounded-card border border-border bg-card shadow-sm">
-                  <Link to={`/loja/${item.loja_slug}`} className="block">
+                  <Link to={`/produto/${item.id}`} className="block">
                     <div className="h-56 overflow-hidden bg-surface">
                       {item.foto_url ? (
                         <img src={item.foto_url} alt={item.titulo} className="h-full w-full object-cover" />
@@ -178,9 +162,13 @@ function Buscar() {
 
                     <div className="space-y-3 p-4">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-text-secondary">
+                        <Link
+                          to={`/loja/${item.loja_slug}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs font-medium uppercase tracking-[0.08em] text-text-secondary hover:text-primary"
+                        >
                           {item.loja_nome}
-                        </span>
+                        </Link>
                         <span className="text-xs font-medium text-primary">
                           {item.modalidade}
                         </span>

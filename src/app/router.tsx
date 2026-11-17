@@ -2,6 +2,8 @@ import { BrowserRouter, Route, Routes } from "react-router";
 
 import Home from "../pages/publicas/Home";
 import Buscar from "../pages/publicas/Buscar";
+import Loja from "../pages/publicas/Loja";
+import DetalheItem from "../pages/publicas/DetalheItem";
 import Entrar from "../pages/publicas/Entrar";
 import Cadastro from "../pages/publicas/Cadastro";
 import Tokens from "../pages/admin/Tokens";
@@ -23,6 +25,8 @@ function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/preview" element={<Home />} />
         <Route path="/buscar" element={<Buscar />} />
+        <Route path="/loja/:slug" element={<Loja />} />
+        <Route path="/produto/:id" element={<DetalheItem />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/cadastro" element={<Cadastro />} />
 
