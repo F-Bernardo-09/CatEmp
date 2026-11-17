@@ -1,40 +1,37 @@
-import CarrosselDestaques from "../../components/catalogo/CarrosselDestaques";
-import type { ItemDestaque } from "../../components/catalogo/types";
+import { Link } from "react-router";
 import CabecalhoPublico from "../../components/layout/CabecalhoPublico";
 import Rodape from "../../components/layout/Rodape";
 
-const itensDestaque: ItemDestaque[] = [
-  {
-    id: "vaso-aurora",
-    titulo: "Vaso Aurora",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1800&q=85",
-    link: "/produto/vaso-aurora",
-  },
-  {
-    id: "poltrona-nuvem",
-    titulo: "Poltrona Nuvem",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=1800&q=85",
-    link: "/produto/poltrona-nuvem",
-  },
-  {
-    id: "bolsa-trama",
-    titulo: "Bolsa Trama",
-    imagemUrl:
-      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1800&q=85",
-    link: "/produto/bolsa-trama",
-  },
-];
-
 function Home() {
   return (
-    <div className="flex min-h-screen flex-col bg-card text-text">
+    <div className="flex min-h-screen flex-col bg-page text-text">
       <CabecalhoPublico />
 
-      <main className="flex-1">
-        <h1 className="sr-only">Produtos e serviços de quem empreende</h1>
-        <CarrosselDestaques itens={itensDestaque} />
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+        <span className="rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold tracking-wider text-primary uppercase">
+          Plataforma para Microempreendedoras
+        </span>
+        <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-text sm:text-5xl">
+          Sua loja online, com a sua identidade.
+        </h1>
+        <p className="mt-4 max-w-2xl text-base text-text-secondary sm:text-lg">
+          O CATEMP permite que cada empreendedora tenha seu próprio espaço exclusivo de divulgação de produtos e serviços, catálogo organizado e atendimento direto pelo WhatsApp.
+        </p>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <Link
+            to="/entrar"
+            className="rounded-button bg-primary px-6 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover shadow-sm"
+          >
+            Acessar painel da loja
+          </Link>
+          <Link
+            to="/cadastro"
+            className="rounded-button border border-border bg-white px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface shadow-sm"
+          >
+            Cadastrar com token
+          </Link>
+        </div>
       </main>
 
       <Rodape />

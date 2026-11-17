@@ -33,6 +33,7 @@ export interface ItemListaResumo {
 
 export interface ItemCatalogoResumo {
   id: string;
+  codigo_publico: string;
   loja_id: string;
   loja_slug: string;
   loja_nome: string;

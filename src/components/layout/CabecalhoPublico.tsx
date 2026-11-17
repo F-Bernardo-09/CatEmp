@@ -12,12 +12,12 @@ function CabecalhoPublico() {
           CATEMP
         </Link>
 
-        <nav aria-label="Navegação principal">
+        <nav aria-label="Navegação institucional" className="flex items-center gap-4 text-sm font-medium">
           <Link
-            to="/buscar"
-            className="rounded-button border border-text-inverse/30 px-4 py-2 text-sm font-medium text-text-inverse transition-colors hover:bg-white/10"
+            to="/entrar"
+            className="rounded-button border border-text-inverse/30 px-4 py-2 transition-colors hover:bg-white/10"
           >
-            Buscar peças
+            Entrar
           </Link>
         </nav>
       </div>

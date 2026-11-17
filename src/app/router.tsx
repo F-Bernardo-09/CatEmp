@@ -22,14 +22,12 @@ function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Institucional e autenticação da plataforma */}
         <Route path="/" element={<Home />} />
-        <Route path="/preview" element={<Home />} />
-        <Route path="/buscar" element={<Buscar />} />
-        <Route path="/loja/:slug" element={<Loja />} />
-        <Route path="/produto/:id" element={<DetalheItem />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/cadastro" element={<Cadastro />} />
 
+        {/* Rotas administrativas e do painel */}
         <Route element={<RotaProtegida />}>
           <Route path="/painel" element={<PainelInicio />} />
           <Route path="/painel/loja" element={<PerfilLoja />} />
@@ -37,11 +35,22 @@ function AppRouter() {
           <Route path="/painel/temas" element={<Temas />} />
           <Route path="/painel/itens" element={<ItensLista />} />
           <Route path="/painel/itens/novo" element={<FormItem />} />
+          <Route path="/painel/itens/:id" element={<FormItem />} />
         </Route>
 
         <Route element={<RotaAdmin />}>
           <Route path="/admin/tokens" element={<Tokens />} />
         </Route>
+
+        {/* Rotas no contexto exclusivo de cada loja */}
+        <Route path="/:slug" element={<Loja />} />
+        <Route path="/:slug/buscar" element={<Buscar />} />
+        <Route path="/:slug/item/:codigo" element={<DetalheItem />} />
+
+        {/* Rota legada para retrocompatibilidade /loja/:slug */}
+        <Route path="/loja/:slug" element={<Loja />} />
+        <Route path="/loja/:slug/buscar" element={<Buscar />} />
+        <Route path="/loja/:slug/item/:codigo" element={<DetalheItem />} />
 
         <Route path="*" element={<NaoEncontrada />} />
       </Routes>
