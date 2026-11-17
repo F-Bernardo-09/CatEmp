@@ -2,19 +2,19 @@
 
 :root {
   /* Cores principais */
-  --color-page: #1f1f1f;
-  --color-surface: #e5e5e5;
+  --color-page: #f8fafc;
+  --color-surface: #f1f5f9;
   --color-card: #ffffff;
 
   /* Cores de texto */
-  --color-text: #111111;
-  --color-text-secondary: #737373;
+  --color-text: #0f172a;
+  --color-text-secondary: #64748b;
   --color-text-inverse: #ffffff;
 
   /* Cores de interação */
-  --color-primary: #111111;
-  --color-primary-hover: #333333;
-  --color-border: #d4d4d4;
+  --color-primary: #0f172a;
+  --color-primary-hover: #1e293b;
+  --color-border: #e2e8f0;
 
   /* Tipografia */
   --font-primary: Arial, Helvetica, sans-serif;
