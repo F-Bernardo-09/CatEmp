@@ -65,10 +65,6 @@ function PainelInicio() {
             </Link>
           )}
         </section>
-          >
-            Ver minha loja
-          </Link>
-        </section>
 
         {/* Resumo da loja */}
         <section aria-labelledby="resumo-titulo">
