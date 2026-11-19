@@ -7,7 +7,7 @@ const item = {
   id: "vaso-aurora",
   titulo: "Vaso Aurora",
   imagemUrl: "https://example.com/vaso.jpg",
-  link: "/produto/vaso-aurora",
+  link: "/minha-loja/item/ABC12",
 };
 
 describe("CardItem", () => {
@@ -20,7 +20,7 @@ describe("CardItem", () => {
 
     expect(screen.getByRole("link", { name: /vaso aurora/i })).toHaveAttribute(
       "href",
-      "/produto/vaso-aurora",
+      "/minha-loja/item/ABC12",
     );
     expect(screen.getByRole("heading", { name: /vaso aurora/i })).toBeInTheDocument();
   });

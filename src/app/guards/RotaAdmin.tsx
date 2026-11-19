@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router";
 import { useAuth } from "../../hooks/useAuth";
 import Carregando from "../../components/ui/Carregando";
+import CabecalhoPublico from "../../components/layout/CabecalhoPublico";
 
 function RotaAdmin() {
   const { perfil, carregando, autenticado } = useAuth();
@@ -17,7 +18,12 @@ function RotaAdmin() {
     return <Navigate to="/painel" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <CabecalhoPublico />
+      <Outlet />
+    </>
+  );
 }
 
 export default RotaAdmin;

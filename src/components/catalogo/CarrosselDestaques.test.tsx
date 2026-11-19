@@ -8,19 +8,19 @@ const itens = [
     id: "vaso-aurora",
     titulo: "Vaso Aurora",
     imagemUrl: "https://example.com/vaso.jpg",
-    link: "/produto/vaso-aurora",
+    link: "/minha-loja/item/ABC12",
   },
   {
     id: "poltrona-nuvem",
     titulo: "Poltrona Nuvem",
     imagemUrl: "https://example.com/poltrona.jpg",
-    link: "/produto/poltrona-nuvem",
+    link: "/minha-loja/item/DEF34",
   },
   {
     id: "bolsa-trama",
     titulo: "Bolsa Trama",
     imagemUrl: "https://example.com/bolsa.jpg",
-    link: "/produto/bolsa-trama",
+    link: "/minha-loja/item/GHI56",
   },
 ];
 
