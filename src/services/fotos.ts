@@ -49,17 +49,52 @@ async function removerUploads(caminhos: string[]): Promise<string | null> {
   return error ? error.message : null;
 }
 
+export interface EstadoFotosExistentes {
+  total: number;
+  proximaPosicao: number;
+  temPrincipal: boolean;
+}
+
+export async function obterEstadoFotos(
+  itemId: string,
+): Promise<EstadoFotosExistentes> {
+  const { data, error } = await supabase
+    .from("fotos")
+    .select("posicao, principal")
+    .eq("item_id", itemId);
+
+  if (error) throw error;
+
+  const fotos = data ?? [];
+  return {
+    total: fotos.length,
+    proximaPosicao: fotos.reduce((maior, f) => Math.max(maior, f.posicao + 1), 0),
+    temPrincipal: fotos.some((f) => f.principal),
+  };
+}
+
 export async function enviarFotosItem(
   itemId: string,
   lojaId: string,
   fotos: FotoParaEnvio[],
+  existentes: EstadoFotosExistentes = {
+    total: 0,
+    proximaPosicao: 0,
+    temPrincipal: false,
+  },
 ): Promise<FotoItem[]> {
   if (fotos.length === 0) {
     throw new Error("Adicione pelo menos uma foto ao item.");
   }
 
-  if (fotos.filter((foto) => foto.principal).length !== 1) {
-    throw new Error("O item deve ter exatamente uma foto principal.");
+  // Na edição, se o item já tem foto principal, as novas fotos não podem ser principais.
+  const principaisEsperadas = existentes.temPrincipal ? 0 : 1;
+  if (fotos.filter((foto) => foto.principal).length !== principaisEsperadas) {
+    throw new Error(
+      existentes.temPrincipal
+        ? "O item já tem foto principal."
+        : "O item deve ter exatamente uma foto principal.",
+    );
   }
 
   const posicoes = new Set<number>();
