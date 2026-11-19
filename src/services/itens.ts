@@ -1,5 +1,31 @@
 import { supabase } from "../lib/supabase";
-import type { ItemListaResumo, ItemSituacao } from "../schemas/item";
+import type { ItemBase, ItemListaResumo, ItemModalidade, ItemSituacao, ItemTipo } from "../schemas/item";
+
+export interface DadosNovoItem {
+  tipo: ItemTipo;
+  modalidade: ItemModalidade;
+  titulo: string;
+  descricao: string;
+  preco_base: number;
+  preco_reposicao: number;
+  altura: number;
+  largura: number;
+  profundidade: number;
+}
+
+export interface DadosAtualizacaoItem {
+  tipo?: ItemTipo;
+  modalidade?: ItemModalidade;
+  titulo?: string;
+  descricao?: string;
+  preco_base?: number;
+  preco_reposicao?: number;
+  altura?: number;
+  largura?: number;
+  profundidade?: number;
+  situacao?: ItemSituacao;
+  em_destaque?: boolean;
+}
 
 async function obterLojaId(): Promise<string> {
   const {
@@ -106,6 +132,95 @@ export async function alterarSituacaoItem(
   if (error) throw error;
 }
 
+export async function criarItem(dados: DadosNovoItem): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .insert({
+      loja_id: lojaId,
+      tipo: dados.tipo,
+      modalidade: dados.modalidade,
+      titulo: dados.titulo,
+      descricao: dados.descricao,
+      preco_base: dados.preco_base,
+      preco_reposicao: dados.preco_reposicao,
+      altura: dados.altura,
+      largura: dados.largura,
+      profundidade: dados.profundidade,
+    })
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
+}
+
+export async function atualizarItem(
+  itemId: string,
+  dados: DadosAtualizacaoItem,
+): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .update(dados)
+    .eq("id", itemId)
+    .eq("loja_id", lojaId)
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
+}
+
+export async function obterItem(itemId: string): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .eq("id", itemId)
+    .eq("loja_id", lojaId)
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
+}
+
 export async function excluirItem(itemId: string): Promise<void> {
   const lojaId = await obterLojaId();
 
@@ -134,4 +249,93 @@ export async function excluirItem(itemId: string): Promise<void> {
     .eq("loja_id", lojaId);
 
   if (error) throw error;
+}
+
+export async function criarItem(dados: DadosNovoItem): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .insert({
+      loja_id: lojaId,
+      tipo: dados.tipo,
+      modalidade: dados.modalidade,
+      titulo: dados.titulo,
+      descricao: dados.descricao,
+      preco_base: dados.preco_base,
+      preco_reposicao: dados.preco_reposicao,
+      altura: dados.altura,
+      largura: dados.largura,
+      profundidade: dados.profundidade,
+    })
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
+}
+
+export async function atualizarItem(
+  itemId: string,
+  dados: DadosAtualizacaoItem,
+): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .update(dados)
+    .eq("id", itemId)
+    .eq("loja_id", lojaId)
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
+}
+
+export async function obterItem(itemId: string): Promise<ItemBase> {
+  const lojaId = await obterLojaId();
+
+  const { data, error } = await supabase
+    .from("itens")
+    .select(
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
+      "altura, largura, profundidade, preco_base, preco_reposicao, " +
+      "situacao, em_destaque, criado_em, atualizado_em",
+    )
+    .eq("id", itemId)
+    .eq("loja_id", lojaId)
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    preco_base: Number(data.preco_base),
+    preco_reposicao: Number(data.preco_reposicao),
+    altura: Number(data.altura),
+    largura: Number(data.largura),
+    profundidade: Number(data.profundidade),
+  };
 }
