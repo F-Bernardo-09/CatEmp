@@ -3,30 +3,50 @@ import type { FormEvent, Ref } from "react";
 
 import CampoFormulario from "./CampoFormulario";
 import { obterMensagemValidacao } from "./estilos";
-import type { TipoItem } from "./types";
+import type { ModalidadeItem, TipoItem } from "./types";
 
 interface EtapaDadosBasicosProps {
   etapaRef: Ref<HTMLFieldSetElement>;
   tipo: TipoItem | "";
+  modalidade: ModalidadeItem | "";
   titulo: string;
   descricao: string;
   preco: string;
+  altura: string;
+  largura: string;
+  profundidade: string;
+  precoReposicao: string;
   onTipoChange: (tipo: TipoItem | "") => void;
+  onModalidadeChange: (modalidade: ModalidadeItem | "") => void;
   onTituloChange: (titulo: string) => void;
   onDescricaoChange: (descricao: string) => void;
   onPrecoChange: (preco: string) => void;
+  onAlturaChange: (altura: string) => void;
+  onLarguraChange: (largura: string) => void;
+  onProfundidadeChange: (profundidade: string) => void;
+  onPrecoReposicaoChange: (precoReposicao: string) => void;
 }
 
 function EtapaDadosBasicos({
   etapaRef,
   tipo,
+  modalidade,
   titulo,
   descricao,
   preco,
+  altura,
+  largura,
+  profundidade,
+  precoReposicao,
   onTipoChange,
+  onModalidadeChange,
   onTituloChange,
   onDescricaoChange,
   onPrecoChange,
+  onAlturaChange,
+  onLarguraChange,
+  onProfundidadeChange,
+  onPrecoReposicaoChange,
 }: EtapaDadosBasicosProps) {
   const [erros, setErros] = useState<Record<string, string>>({});
 
@@ -81,6 +101,30 @@ function EtapaDadosBasicos({
       </CampoFormulario>
 
       <CampoFormulario
+        as="select"
+        id="modalidade"
+        label="Modalidade"
+        error={erros.modalidade}
+        controlProps={{
+          name: "modalidade",
+          required: true,
+          value: modalidade,
+          onInvalid: (event) =>
+            validarCampo("a modalidade", "modalidade", event),
+          onChange: (event) => {
+            limparErro("modalidade", event);
+            onModalidadeChange(event.target.value as ModalidadeItem | "");
+          },
+        }}
+      >
+        <option value="" disabled>
+          Selecione a modalidade
+        </option>
+        <option value="aluguel">Aluguel</option>
+        <option value="venda">Venda</option>
+      </CampoFormulario>
+
+      <CampoFormulario
         id="titulo"
         label="Título"
         error={erros.titulo}
@@ -115,7 +159,8 @@ function EtapaDadosBasicos({
           maxLength: 500,
           placeholder: "Descrição",
           value: descricao,
-          onInvalid: (event) => validarCampo("a descrição", "descricao", event),
+          onInvalid: (event) =>
+            validarCampo("a descrição", "descricao", event),
           onChange: (event) => {
             limparErro("descricao", event);
             onDescricaoChange(event.target.value);
@@ -127,10 +172,10 @@ function EtapaDadosBasicos({
         id="preco"
         label={
           tipo === "servico"
-            ? "Valor mínimo (R$) "
+            ? "Valor mínimo (R$)"
             : tipo === "produto"
-              ? "Valor do produto (R$) "
-              : "Valor (R$) *"
+              ? "Valor do produto (R$)"
+              : "Valor (R$)"
         }
         error={erros.preco}
         controlProps={{
@@ -148,6 +193,94 @@ function EtapaDadosBasicos({
           },
         }}
       />
+
+      <CampoFormulario
+        id="precoReposicao"
+        label="Preço de reposição (R$)"
+        error={erros.precoReposicao}
+        controlProps={{
+          name: "precoReposicao",
+          type: "number",
+          min: "0",
+          step: "0.01",
+          placeholder: "0,00",
+          required: true,
+          value: precoReposicao,
+          onInvalid: (event) =>
+            validarCampo("o preço de reposição", "precoReposicao", event),
+          onChange: (event) => {
+            limparErro("precoReposicao", event);
+            onPrecoReposicaoChange(event.target.value);
+          },
+        }}
+      />
+
+      <fieldset className="rounded-card border border-border p-4">
+        <legend className="px-1 text-sm font-semibold text-text">
+          Dimensões (cm)
+        </legend>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CampoFormulario
+            id="altura"
+            label="Altura"
+            error={erros.altura}
+            controlProps={{
+              name: "altura",
+              type: "number",
+              min: "0.01",
+              step: "0.01",
+              placeholder: "0,00",
+              required: true,
+              value: altura,
+              onInvalid: (event) => validarCampo("a altura", "altura", event),
+              onChange: (event) => {
+                limparErro("altura", event);
+                onAlturaChange(event.target.value);
+              },
+            }}
+          />
+          <CampoFormulario
+            id="largura"
+            label="Largura"
+            error={erros.largura}
+            controlProps={{
+              name: "largura",
+              type: "number",
+              min: "0.01",
+              step: "0.01",
+              placeholder: "0,00",
+              required: true,
+              value: largura,
+              onInvalid: (event) =>
+                validarCampo("a largura", "largura", event),
+              onChange: (event) => {
+                limparErro("largura", event);
+                onLarguraChange(event.target.value);
+              },
+            }}
+          />
+          <CampoFormulario
+            id="profundidade"
+            label="Profundidade"
+            error={erros.profundidade}
+            controlProps={{
+              name: "profundidade",
+              type: "number",
+              min: "0.01",
+              step: "0.01",
+              placeholder: "0,00",
+              required: true,
+              value: profundidade,
+              onInvalid: (event) =>
+                validarCampo("a profundidade", "profundidade", event),
+              onChange: (event) => {
+                limparErro("profundidade", event);
+                onProfundidadeChange(event.target.value);
+              },
+            }}
+          />
+        </div>
+      </fieldset>
     </fieldset>
   );
 }

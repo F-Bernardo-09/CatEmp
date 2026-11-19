@@ -75,15 +75,31 @@ function FormItem({ itemId }: FormItemProps) {
             <EtapaDadosBasicos
               etapaRef={etapaRef}
               tipo={dados.tipo}
+              modalidade={dados.modalidade}
               titulo={dados.titulo}
               descricao={dados.descricao}
               preco={dados.preco}
+              altura={dados.altura}
+              largura={dados.largura}
+              profundidade={dados.profundidade}
+              precoReposicao={dados.precoReposicao}
               onTipoChange={(tipo) => atualizarCampo("tipo", tipo)}
+              onModalidadeChange={(modalidade) =>
+                atualizarCampo("modalidade", modalidade)
+              }
               onTituloChange={(titulo) => atualizarCampo("titulo", titulo)}
               onDescricaoChange={(descricao) =>
                 atualizarCampo("descricao", descricao)
               }
               onPrecoChange={(preco) => atualizarCampo("preco", preco)}
+              onAlturaChange={(altura) => atualizarCampo("altura", altura)}
+              onLarguraChange={(largura) => atualizarCampo("largura", largura)}
+              onProfundidadeChange={(profundidade) =>
+                atualizarCampo("profundidade", profundidade)
+              }
+              onPrecoReposicaoChange={(precoReposicao) =>
+                atualizarCampo("precoReposicao", precoReposicao)
+              }
             />
           )}
 

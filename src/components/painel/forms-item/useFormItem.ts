@@ -29,9 +29,14 @@ function useFormItem() {
 
   const [dados, setDados] = useState<DadosFormulario>({
     tipo: "",
+    modalidade: "",
     titulo: "",
     descricao: "",
     preco: "",
+    altura: "",
+    largura: "",
+    profundidade: "",
+    precoReposicao: "",
     imagens: [],
     categorias: [],
     adicionais: [],
@@ -281,6 +286,7 @@ function useFormItem() {
     setEtapaAtual((etapa) => Math.max(etapa - 1, 1));
   }
 
+  // Será preenchida no commit seguinte com persistência real
   function finalizarFormulario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     console.log(dados);
