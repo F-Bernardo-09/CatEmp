@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import type { FormEvent } from "react";
 
 import { supabase } from "../../../lib/supabase";
 import { vincularCategorias } from "../../../services/categorias";
 import { listarExtrasServico, criarExtrasServico } from "../../../services/extras";
-import { enviarFotosItem } from "../../../services/fotos";
+import { enviarFotosItem, obterEstadoFotos } from "../../../services/fotos";
 import { criarItem, atualizarItem, obterItem } from "../../../services/itens";
 import { listarTemas } from "../../../services/temas";
 import type { AdicionalServico, DadosFormulario } from "./types";
@@ -29,6 +30,16 @@ const etapaAdicionais: Etapa = {
 
 function useFormItem(itemId?: string) {
   const modoEdicao = Boolean(itemId);
+  const navigate = useNavigate();
+
+  // Guarda o progresso do salvamento: se algo falhar no meio, "Concluir"
+  // continua de onde parou em vez de criar outro item ou repetir fotos.
+  const progressoSalvamento = useRef({
+    itemId: "",
+    lojaId: "",
+    fotosEnviadas: false,
+    categoriasVinculadas: false,
+  });
 
   const [etapaAtual, setEtapaAtual] = useState(1);
   const etapaRef = useRef<HTMLFieldSetElement>(null);
@@ -384,43 +395,40 @@ function useFormItem(itemId?: string) {
     setErroSalvar("");
 
     try {
+      const progresso = progressoSalvamento.current;
+
+      const camposItem = {
+        tipo: dados.tipo,
+        modalidade: dados.modalidade,
+        titulo: dados.titulo.trim(),
+        descricao: dados.descricao,
+        preco_base: Number(dados.preco),
+        preco_reposicao: Number(dados.precoReposicao),
+        altura: Number(dados.altura),
+        largura: Number(dados.largura),
+        profundidade: Number(dados.profundidade),
+      };
+
+      // 1) Item: edita se já existe (edição ou tentativa anterior), senão cria
+      const idExistente = itemId ?? progresso.itemId;
       let resolvedItemId: string;
       let lojaId: string;
 
-      if (modoEdicao && itemId) {
-        // Edição: atualiza os campos básicos
-        const item = await atualizarItem(itemId, {
-          tipo: dados.tipo,
-          modalidade: dados.modalidade,
-          titulo: dados.titulo,
-          descricao: dados.descricao,
-          preco_base: Number(dados.preco),
-          preco_reposicao: Number(dados.precoReposicao),
-          altura: Number(dados.altura),
-          largura: Number(dados.largura),
-          profundidade: Number(dados.profundidade),
-        });
+      if (idExistente) {
+        const item = await atualizarItem(idExistente, camposItem);
         resolvedItemId = item.id;
         lojaId = item.loja_id;
       } else {
-        // Criação
-        const item = await criarItem({
-          tipo: dados.tipo,
-          modalidade: dados.modalidade,
-          titulo: dados.titulo,
-          descricao: dados.descricao,
-          preco_base: Number(dados.preco),
-          preco_reposicao: Number(dados.precoReposicao),
-          altura: Number(dados.altura),
-          largura: Number(dados.largura),
-          profundidade: Number(dados.profundidade),
-        });
+        const item = await criarItem(camposItem);
         resolvedItemId = item.id;
         lojaId = item.loja_id;
       }
+      progresso.itemId = resolvedItemId;
+      progresso.lojaId = lojaId;
 
-      // Novas fotos adicionadas (na edição, apenas as que têm arquivo)
-      if (dados.imagens.length > 0) {
+      // 2) Fotos novas (na edição, as já salvas continuam; só entram as adicionadas)
+      if (dados.imagens.length > 0 && !progresso.fotosEnviadas) {
+        const existentes = await obterEstadoFotos(resolvedItemId);
         await enviarFotosItem(
           resolvedItemId,
           lojaId,
@@ -428,20 +436,25 @@ function useFormItem(itemId?: string) {
             arquivo: imagem.arquivo,
             tema: imagem.tema,
             textoAlternativo: imagem.textoAlternativo,
-            posicao: indice,
-            principal: imagem.principal,
+            posicao: existentes.proximaPosicao + indice,
+            principal: existentes.temPrincipal ? false : imagem.principal,
           })),
+          existentes,
         );
+        progresso.fotosEnviadas = true;
       }
 
-      // Categorias (substituição completa)
-      await vincularCategorias(
-        resolvedItemId,
-        dados.modalidade,
-        dados.categorias,
-      );
+      // 3) Categorias (substitui todas; lista vazia limpa os vínculos)
+      if (!progresso.categoriasVinculadas) {
+        await vincularCategorias(
+          resolvedItemId,
+          dados.modalidade,
+          dados.categorias,
+        );
+        progresso.categoriasVinculadas = true;
+      }
 
-      // Adicionais novos (apenas para serviços; os que têm imagem File)
+      // 4) Adicionais novos (só serviço; os já salvos não têm File)
       if (dados.tipo === "servico") {
         const adicionaisNovos = dados.adicionais.filter(
           (a) => a.imagem !== null,
@@ -458,7 +471,7 @@ function useFormItem(itemId?: string) {
         }
       }
 
-      window.location.href = "/painel/itens";
+      navigate("/painel/itens");
     } catch (erro) {
       setErroSalvar(
         erro instanceof Error ? erro.message : "Erro ao salvar o item.",
