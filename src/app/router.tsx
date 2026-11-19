@@ -6,6 +6,8 @@ import Loja from "../pages/publicas/Loja";
 import DetalheItem from "../pages/publicas/DetalheItem";
 import Entrar from "../pages/publicas/Entrar";
 import Cadastro from "../pages/publicas/Cadastro";
+import Loja from "../pages/publicas/Loja";
+import Carrinho from "../pages/publicas/Carrinho";
 import Tokens from "../pages/admin/Tokens";
 import PainelInicio from "../pages/painel/PainelInicio";
 import PerfilLoja from "../pages/painel/PerfilLoja";
@@ -26,6 +28,8 @@ function AppRouter() {
         <Route path="/" element={<Home />} />
         <Route path="/entrar" element={<Entrar />} />
         <Route path="/cadastro" element={<Cadastro />} />
+        <Route path="/loja/:slug" element={<Loja />} />
+        <Route path="/carrinho" element={<Carrinho />} />
 
         {/* Rotas administrativas e do painel */}
         <Route element={<RotaProtegida />}>
