@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { supabase } from "../../../lib/supabase";
+import { vincularCategorias } from "../../../services/categorias";
+import { criarExtrasServico } from "../../../services/extras";
+import { enviarFotosItem } from "../../../services/fotos";
+import { criarItem } from "../../../services/itens";
 import { listarTemas } from "../../../services/temas";
 import type { AdicionalServico, DadosFormulario } from "./types";
 
@@ -286,16 +290,87 @@ function useFormItem() {
     setEtapaAtual((etapa) => Math.max(etapa - 1, 1));
   }
 
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState("");
+
+  async function salvarItem() {
+    if (!dados.tipo || !dados.modalidade) {
+      setErroSalvar("Selecione o tipo e a modalidade do item.");
+      return;
+    }
+
+    setSalvando(true);
+    setErroSalvar("");
+
+    try {
+      const item = await criarItem({
+        tipo: dados.tipo,
+        modalidade: dados.modalidade,
+        titulo: dados.titulo,
+        descricao: dados.descricao,
+        preco_base: Number(dados.preco),
+        preco_reposicao: Number(dados.precoReposicao),
+        altura: Number(dados.altura),
+        largura: Number(dados.largura),
+        profundidade: Number(dados.profundidade),
+      });
+
+      // Fotos (obrigatórias)
+      await enviarFotosItem(
+        item.id,
+        item.loja_id,
+        dados.imagens.map((imagem, indice) => ({
+          arquivo: imagem.arquivo,
+          tema: imagem.tema,
+          textoAlternativo: imagem.textoAlternativo,
+          posicao: indice,
+          principal: imagem.principal,
+        })),
+      );
+
+      // Categorias (opcionais)
+      if (dados.categorias.length > 0) {
+        await vincularCategorias(item.id, dados.modalidade, dados.categorias);
+      }
+
+      // Adicionais (apenas para serviços)
+      if (dados.tipo === "servico" && dados.adicionais.length > 0) {
+        const adicionaisComImagem = dados.adicionais.filter(
+          (a) => a.imagem !== null,
+        );
+        await criarExtrasServico(
+          item.id,
+          adicionaisComImagem.map((a) => ({
+            nome: a.nome,
+            precoMinimo: a.precoMinimo,
+            imagem: a.imagem!,
+          })),
+        );
+      }
+
+      // Redireciona para a lista após salvar
+      window.location.href = "/painel/itens";
+    } catch (erro) {
+      setErroSalvar(
+        erro instanceof Error ? erro.message : "Erro ao salvar o item.",
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   // Será preenchida no commit seguinte com persistência real
   function finalizarFormulario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log(dados);
+    void salvarItem();
   }
 
   return {
     etapaAtual,
     etapaRef,
     dados,
+    salvando,
+    erroSalvar,
     categoriasDisponiveis,
     temasDisponiveis,
     erroImagens,

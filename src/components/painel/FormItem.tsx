@@ -14,6 +14,8 @@ function FormItem({ itemId }: FormItemProps) {
     etapaAtual,
     etapaRef,
     dados,
+    salvando,
+    erroSalvar,
     categoriasDisponiveis,
     temasDisponiveis,
     erroImagens,
@@ -141,36 +143,50 @@ function FormItem({ itemId }: FormItemProps) {
 
           <nav
             aria-label="Navegação do formulário"
-            className="flex items-center justify-between gap-3 border-t border-border pt-6"
+            className="flex flex-col gap-4 border-t border-border pt-6"
           >
-            {etapaAtual > 1 ? (
-              <button
-                type="button"
-                onClick={voltarEtapa}
-                className="rounded-button border border-border bg-card px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
+            {erroSalvar && (
+              <p
+                role="alert"
+                className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
               >
-                Voltar
-              </button>
-            ) : (
-              <span />
+                {erroSalvar}
+              </p>
             )}
 
-            {etapaAtual < totalEtapas ? (
-              <button
-                type="button"
-                onClick={avancarEtapa}
-                className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover"
-              >
-                Próximo
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover"
-              >
-                Concluir
-              </button>
-            )}
+            <div className="flex items-center justify-between gap-3">
+              {etapaAtual > 1 ? (
+                <button
+                  type="button"
+                  onClick={voltarEtapa}
+                  disabled={salvando}
+                  className="rounded-button border border-border bg-card px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Voltar
+                </button>
+              ) : (
+                <span />
+              )}
+
+              {etapaAtual < totalEtapas ? (
+                <button
+                  type="button"
+                  onClick={avancarEtapa}
+                  disabled={salvando}
+                  className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Próximo
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={salvando}
+                  className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {salvando ? "Salvando…" : "Concluir"}
+                </button>
+              )}
+            </div>
           </nav>
         </form>
       </div>
