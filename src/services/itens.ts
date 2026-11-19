@@ -132,39 +132,31 @@ export async function alterarSituacaoItem(
   if (error) throw error;
 }
 
+const COLUNAS_ITEM =
+  "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, altura, largura, profundidade, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em";
+
+function paraItemBase(linha: any): ItemBase {
+  return {
+    ...linha,
+    preco_base: Number(linha.preco_base),
+    preco_reposicao: Number(linha.preco_reposicao),
+    altura: Number(linha.altura),
+    largura: Number(linha.largura),
+    profundidade: Number(linha.profundidade),
+  };
+}
+
 export async function criarItem(dados: DadosNovoItem): Promise<ItemBase> {
   const lojaId = await obterLojaId();
 
   const { data, error } = await supabase
     .from("itens")
-    .insert({
-      loja_id: lojaId,
-      tipo: dados.tipo,
-      modalidade: dados.modalidade,
-      titulo: dados.titulo,
-      descricao: dados.descricao,
-      preco_base: dados.preco_base,
-      preco_reposicao: dados.preco_reposicao,
-      altura: dados.altura,
-      largura: dados.largura,
-      profundidade: dados.profundidade,
-    })
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
+    .insert({ loja_id: lojaId, ...dados })
+    .select(COLUNAS_ITEM)
     .single();
 
   if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
+  return paraItemBase(data);
 }
 
 export async function atualizarItem(
@@ -173,27 +165,39 @@ export async function atualizarItem(
 ): Promise<ItemBase> {
   const lojaId = await obterLojaId();
 
+  // item_categorias referencia (item, loja, modalidade): se a modalidade mudar,
+  // os vínculos antigos precisam sair antes, senão o banco recusa o UPDATE.
+  if (dados.modalidade) {
+    const { data: atual, error: erroAtual } = await supabase
+      .from("itens")
+      .select("modalidade")
+      .eq("id", itemId)
+      .eq("loja_id", lojaId)
+      .single();
+
+    if (erroAtual) throw erroAtual;
+
+    if (atual.modalidade !== dados.modalidade) {
+      const { error: erroVinculos } = await supabase
+        .from("item_categorias")
+        .delete()
+        .eq("item_id", itemId)
+        .eq("loja_id", lojaId);
+
+      if (erroVinculos) throw erroVinculos;
+    }
+  }
+
   const { data, error } = await supabase
     .from("itens")
     .update(dados)
     .eq("id", itemId)
     .eq("loja_id", lojaId)
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
+    .select(COLUNAS_ITEM)
     .single();
 
   if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
+  return paraItemBase(data);
 }
 
 export async function obterItem(itemId: string): Promise<ItemBase> {
@@ -201,24 +205,13 @@ export async function obterItem(itemId: string): Promise<ItemBase> {
 
   const { data, error } = await supabase
     .from("itens")
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
+    .select(COLUNAS_ITEM)
     .eq("id", itemId)
     .eq("loja_id", lojaId)
     .single();
 
   if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
+  return paraItemBase(data);
 }
 
 export async function excluirItem(itemId: string): Promise<void> {
@@ -249,93 +242,4 @@ export async function excluirItem(itemId: string): Promise<void> {
     .eq("loja_id", lojaId);
 
   if (error) throw error;
-}
-
-export async function criarItem(dados: DadosNovoItem): Promise<ItemBase> {
-  const lojaId = await obterLojaId();
-
-  const { data, error } = await supabase
-    .from("itens")
-    .insert({
-      loja_id: lojaId,
-      tipo: dados.tipo,
-      modalidade: dados.modalidade,
-      titulo: dados.titulo,
-      descricao: dados.descricao,
-      preco_base: dados.preco_base,
-      preco_reposicao: dados.preco_reposicao,
-      altura: dados.altura,
-      largura: dados.largura,
-      profundidade: dados.profundidade,
-    })
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
-    .single();
-
-  if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
-}
-
-export async function atualizarItem(
-  itemId: string,
-  dados: DadosAtualizacaoItem,
-): Promise<ItemBase> {
-  const lojaId = await obterLojaId();
-
-  const { data, error } = await supabase
-    .from("itens")
-    .update(dados)
-    .eq("id", itemId)
-    .eq("loja_id", lojaId)
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
-    .single();
-
-  if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
-}
-
-export async function obterItem(itemId: string): Promise<ItemBase> {
-  const lojaId = await obterLojaId();
-
-  const { data, error } = await supabase
-    .from("itens")
-    .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, " +
-      "altura, largura, profundidade, preco_base, preco_reposicao, " +
-      "situacao, em_destaque, criado_em, atualizado_em",
-    )
-    .eq("id", itemId)
-    .eq("loja_id", lojaId)
-    .single();
-
-  if (error) throw error;
-  return {
-    ...data,
-    preco_base: Number(data.preco_base),
-    preco_reposicao: Number(data.preco_reposicao),
-    altura: Number(data.altura),
-    largura: Number(data.largura),
-    profundidade: Number(data.profundidade),
-  };
 }
