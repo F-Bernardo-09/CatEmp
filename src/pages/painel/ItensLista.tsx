@@ -196,6 +196,13 @@ function ItensLista() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 md:justify-end">
+                  <Link
+                    to={`/painel/itens/${item.id}`}
+                    className="rounded-button border border-border bg-white px-3 py-2 text-xs font-semibold text-text transition-colors hover:bg-surface"
+                  >
+                    Editar
+                  </Link>
+
                   {item.situacao !== "disponivel" && (
                     <button
                       type="button"

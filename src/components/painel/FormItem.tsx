@@ -1,3 +1,5 @@
+import { useParams } from "react-router";
+
 import LayoutPainel from "../layout/LayoutPainel";
 import EtapaAdicionais from "./forms-item/EtapaAdicionais";
 import EtapaCategorias from "./forms-item/EtapaCategorias";
@@ -5,12 +7,13 @@ import EtapaDadosBasicos from "./forms-item/EtapaDadosBasicos";
 import EtapaImagensTemas from "./forms-item/EtapaImagensTemas/EtapaImagensTemas";
 import useFormItem from "./forms-item/useFormItem";
 
-interface FormItemProps {
-  itemId?: string;
-}
+function FormItem() {
+  const { id: itemId } = useParams<{ id: string }>();
 
-function FormItem({ itemId }: FormItemProps) {
   const {
+    modoEdicao,
+    carregandoItem,
+    erroCarregar,
     etapaAtual,
     etapaRef,
     dados,
@@ -38,7 +41,28 @@ function FormItem({ itemId }: FormItemProps) {
     avancarEtapa,
     voltarEtapa,
     finalizarFormulario,
-  } = useFormItem();
+  } = useFormItem(itemId);
+
+  if (carregandoItem) {
+    return (
+      <LayoutPainel>
+        <p className="text-sm text-text-secondary">Carregando item…</p>
+      </LayoutPainel>
+    );
+  }
+
+  if (erroCarregar) {
+    return (
+      <LayoutPainel>
+        <p
+          role="alert"
+          className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          {erroCarregar}
+        </p>
+      </LayoutPainel>
+    );
+  }
 
   return (
     <LayoutPainel>
@@ -46,7 +70,7 @@ function FormItem({ itemId }: FormItemProps) {
         <header>
           <p className="text-sm text-text-secondary">Painel da loja</p>
           <h1 className="mt-1 text-2xl font-bold text-text">
-            {itemId ? "Editar item" : "Cadastrar item"}
+            {modoEdicao ? "Editar item" : "Cadastrar item"}
           </h1>
         </header>
 

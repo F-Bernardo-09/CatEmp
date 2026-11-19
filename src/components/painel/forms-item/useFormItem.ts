@@ -3,9 +3,9 @@ import type { FormEvent } from "react";
 
 import { supabase } from "../../../lib/supabase";
 import { vincularCategorias } from "../../../services/categorias";
-import { criarExtrasServico } from "../../../services/extras";
+import { listarExtrasServico, criarExtrasServico } from "../../../services/extras";
 import { enviarFotosItem } from "../../../services/fotos";
-import { criarItem } from "../../../services/itens";
+import { criarItem, atualizarItem, obterItem } from "../../../services/itens";
 import { listarTemas } from "../../../services/temas";
 import type { AdicionalServico, DadosFormulario } from "./types";
 
@@ -27,9 +27,14 @@ const etapaAdicionais: Etapa = {
   titulo: "Adicionais do serviço",
 };
 
-function useFormItem() {
+function useFormItem(itemId?: string) {
+  const modoEdicao = Boolean(itemId);
+
   const [etapaAtual, setEtapaAtual] = useState(1);
   const etapaRef = useRef<HTMLFieldSetElement>(null);
+
+  const [carregandoItem, setCarregandoItem] = useState(modoEdicao);
+  const [erroCarregar, setErroCarregar] = useState("");
 
   const [dados, setDados] = useState<DadosFormulario>({
     tipo: "",
@@ -52,6 +57,7 @@ function useFormItem() {
   const [temasDisponiveis, setTemasDisponiveis] = useState<string[]>([]);
   const [erroImagens, setErroImagens] = useState("");
 
+  // Carrega temas da loja
   useEffect(() => {
     let ativo = true;
 
@@ -80,6 +86,81 @@ function useFormItem() {
       ativo = false;
     };
   }, []);
+
+  // Carrega dados do item existente no modo edição
+  useEffect(() => {
+    if (!itemId) return;
+
+    let ativo = true;
+    setCarregandoItem(true);
+    setErroCarregar("");
+
+    async function carregarItemExistente() {
+      try {
+        // Dados básicos do item
+        const item = await obterItem(itemId!);
+
+        // Categorias vinculadas ao item
+        const { data: catData, error: catError } = await supabase
+          .from("item_categorias")
+          .select("categorias(nome)")
+          .eq("item_id", itemId);
+
+        if (catError) throw catError;
+
+        const nomesCategoria = (catData ?? [])
+          .map((row: any) => row.categorias?.nome as string | undefined)
+          .filter((nome): nome is string => Boolean(nome));
+
+        // Adicionais (somente para serviços)
+        let adicionaisCarregados: AdicionalServico[] = [];
+        if (item.tipo === "servico") {
+          try {
+            const extras = await listarExtrasServico(itemId!);
+            adicionaisCarregados = extras.map((extra) => ({
+              id: extra.id,
+              nome: extra.nome,
+              precoMinimo: String(extra.preco_minimo),
+              imagem: null, // arquivos originais não são re-carregáveis
+            }));
+          } catch (erroExtras) {
+            console.warn("Não foi possível carregar os adicionais:", erroExtras);
+          }
+        }
+
+        if (!ativo) return;
+
+        setDados({
+          tipo: item.tipo,
+          modalidade: item.modalidade,
+          titulo: item.titulo,
+          descricao: item.descricao,
+          preco: String(item.preco_base),
+          altura: String(item.altura),
+          largura: String(item.largura),
+          profundidade: String(item.profundidade),
+          precoReposicao: String(item.preco_reposicao),
+          imagens: [], // fotos existentes não são recarregadas como File
+          categorias: nomesCategoria,
+          adicionais: adicionaisCarregados,
+        });
+
+        setCategoriasDisponiveis(nomesCategoria);
+      } catch (erro) {
+        if (!ativo) return;
+        setErroCarregar(
+          erro instanceof Error ? erro.message : "Erro ao carregar o item.",
+        );
+      } finally {
+        if (ativo) setCarregandoItem(false);
+      }
+    }
+
+    void carregarItemExistente();
+    return () => {
+      ativo = false;
+    };
+  }, [itemId]);
 
   const etapas =
     dados.tipo === "servico"
@@ -275,7 +356,7 @@ function useFormItem() {
   }
 
   function avancarEtapa() {
-    if (etapaConfig?.id === "imagens" && dados.imagens.length === 0) {
+    if (etapaConfig?.id === "imagens" && dados.imagens.length === 0 && !modoEdicao) {
       setErroImagens("Adicione pelo menos uma foto para continuar.");
       return;
     }
@@ -303,52 +384,80 @@ function useFormItem() {
     setErroSalvar("");
 
     try {
-      const item = await criarItem({
-        tipo: dados.tipo,
-        modalidade: dados.modalidade,
-        titulo: dados.titulo,
-        descricao: dados.descricao,
-        preco_base: Number(dados.preco),
-        preco_reposicao: Number(dados.precoReposicao),
-        altura: Number(dados.altura),
-        largura: Number(dados.largura),
-        profundidade: Number(dados.profundidade),
-      });
+      let resolvedItemId: string;
+      let lojaId: string;
 
-      // Fotos (obrigatórias)
-      await enviarFotosItem(
-        item.id,
-        item.loja_id,
-        dados.imagens.map((imagem, indice) => ({
-          arquivo: imagem.arquivo,
-          tema: imagem.tema,
-          textoAlternativo: imagem.textoAlternativo,
-          posicao: indice,
-          principal: imagem.principal,
-        })),
-      );
-
-      // Categorias (opcionais)
-      if (dados.categorias.length > 0) {
-        await vincularCategorias(item.id, dados.modalidade, dados.categorias);
+      if (modoEdicao && itemId) {
+        // Edição: atualiza os campos básicos
+        const item = await atualizarItem(itemId, {
+          tipo: dados.tipo,
+          modalidade: dados.modalidade,
+          titulo: dados.titulo,
+          descricao: dados.descricao,
+          preco_base: Number(dados.preco),
+          preco_reposicao: Number(dados.precoReposicao),
+          altura: Number(dados.altura),
+          largura: Number(dados.largura),
+          profundidade: Number(dados.profundidade),
+        });
+        resolvedItemId = item.id;
+        lojaId = item.loja_id;
+      } else {
+        // Criação
+        const item = await criarItem({
+          tipo: dados.tipo,
+          modalidade: dados.modalidade,
+          titulo: dados.titulo,
+          descricao: dados.descricao,
+          preco_base: Number(dados.preco),
+          preco_reposicao: Number(dados.precoReposicao),
+          altura: Number(dados.altura),
+          largura: Number(dados.largura),
+          profundidade: Number(dados.profundidade),
+        });
+        resolvedItemId = item.id;
+        lojaId = item.loja_id;
       }
 
-      // Adicionais (apenas para serviços)
-      if (dados.tipo === "servico" && dados.adicionais.length > 0) {
-        const adicionaisComImagem = dados.adicionais.filter(
-          (a) => a.imagem !== null,
-        );
-        await criarExtrasServico(
-          item.id,
-          adicionaisComImagem.map((a) => ({
-            nome: a.nome,
-            precoMinimo: a.precoMinimo,
-            imagem: a.imagem!,
+      // Novas fotos adicionadas (na edição, apenas as que têm arquivo)
+      if (dados.imagens.length > 0) {
+        await enviarFotosItem(
+          resolvedItemId,
+          lojaId,
+          dados.imagens.map((imagem, indice) => ({
+            arquivo: imagem.arquivo,
+            tema: imagem.tema,
+            textoAlternativo: imagem.textoAlternativo,
+            posicao: indice,
+            principal: imagem.principal,
           })),
         );
       }
 
-      // Redireciona para a lista após salvar
+      // Categorias (substituição completa)
+      await vincularCategorias(
+        resolvedItemId,
+        dados.modalidade,
+        dados.categorias,
+      );
+
+      // Adicionais novos (apenas para serviços; os que têm imagem File)
+      if (dados.tipo === "servico") {
+        const adicionaisNovos = dados.adicionais.filter(
+          (a) => a.imagem !== null,
+        );
+        if (adicionaisNovos.length > 0) {
+          await criarExtrasServico(
+            resolvedItemId,
+            adicionaisNovos.map((a) => ({
+              nome: a.nome,
+              precoMinimo: a.precoMinimo,
+              imagem: a.imagem!,
+            })),
+          );
+        }
+      }
+
       window.location.href = "/painel/itens";
     } catch (erro) {
       setErroSalvar(
@@ -359,13 +468,15 @@ function useFormItem() {
     }
   }
 
-  // Será preenchida no commit seguinte com persistência real
   function finalizarFormulario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void salvarItem();
   }
 
   return {
+    modoEdicao,
+    carregandoItem,
+    erroCarregar,
     etapaAtual,
     etapaRef,
     dados,
