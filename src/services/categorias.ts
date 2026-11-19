@@ -123,7 +123,6 @@ export async function vincularCategorias(
   modalidade: ModalidadeCategoria,
   nomes: string[],
 ): Promise<void> {
-  if (nomes.length === 0) return;
 
   const lojaId = await obterLojaId();
 
