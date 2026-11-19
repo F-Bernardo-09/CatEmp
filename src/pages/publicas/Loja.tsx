@@ -1,13 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 
-import CabecalhoPublico from "../../components/layout/CabecalhoPublico";
+import CabecalhoLoja from "../../components/layout/CabecalhoLoja";
 import Rodape from "../../components/layout/Rodape";
+import CarrosselDestaques from "../../components/catalogo/CarrosselDestaques";
+import type { ItemDestaque } from "../../components/catalogo/types";
 import { useCarrinho } from "../../hooks/useCarrinho";
-import { buscarLojaPorSlug } from "../../services/lojas";
 import { supabase } from "../../lib/supabase";
-import type { Loja as LojaData } from "../../schemas/loja";
+import type { Loja } from "../../schemas/loja";
 import type { ItemCatalogoResumo } from "../../schemas/item";
+import { buscarLojaPorSlug } from "../../services/lojas";
+import { listarItensCatalogoDaLoja } from "../../services/catalogo";
 
 function formatarPreco(valor: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -16,86 +19,67 @@ function formatarPreco(valor: number): string {
   }).format(valor);
 }
 
-function Loja() {
-  const { slug } = useParams();
+function LojaHome() {
+  const { slug } = useParams<{ slug: string }>();
   const { adicionar } = useCarrinho();
-  const [loja, setLoja] = useState<LojaData | null>(null);
+  const [loja, setLoja] = useState<Loja | null>(null);
+  const [destaques, setDestaques] = useState<ItemDestaque[]>([]);
   const [itens, setItens] = useState<ItemCatalogoResumo[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [naoEncontrada, setNaoEncontrada] = useState(false);
   const [erro, setErro] = useState("");
+  const [erroCarrinho, setErroCarrinho] = useState("");
   const [adicionado, setAdicionado] = useState("");
 
   useEffect(() => {
+    if (!slug) return;
+
     let ativo = true;
 
-    async function carregar() {
-      if (!slug) return;
-      setCarregando(true);
-      setErro("");
+    setCarregando(true);
+    setNaoEncontrada(false);
+    setErro("");
 
+    async function carregar() {
       try {
-        const dadosLoja = await buscarLojaPorSlug(slug);
+        const lojaEncontrada = await buscarLojaPorSlug(slug!);
         if (!ativo) return;
-        if (!dadosLoja) {
-          setLoja(null);
-          setItens([]);
+
+        if (!lojaEncontrada || lojaEncontrada.situacao !== "ativa") {
+          setNaoEncontrada(true);
           return;
         }
 
-        setLoja(dadosLoja);
-        const { data: dadosItens, error: erroItens } = await supabase
-          .from("itens")
-          .select(
-            "id, loja_id, titulo, modalidade, descricao, preco_base, preco_reposicao, altura, largura, profundidade, em_destaque",
-          )
-          .eq("loja_id", dadosLoja.id)
-          .eq("situacao", "disponivel")
-          .order("em_destaque", { ascending: false })
-          .order("criado_em", { ascending: false });
+        setLoja(lojaEncontrada);
 
-        if (erroItens) throw erroItens;
+        // 1. Carrega destaques da loja
+        const resDestaques = await listarItensCatalogoDaLoja({
+          lojaId: lojaEncontrada.id,
+          apenasDestaques: true,
+          limit: 6,
+        });
 
-        const itensBase = dadosItens ?? [];
-        const itemIds = itensBase.map((item) => item.id);
-        const { data: fotos, error: erroFotos } = itemIds.length
-          ? await supabase
-              .from("fotos")
-              .select("item_id, caminho_storage, principal")
-              .in("item_id", itemIds)
-              .order("posicao", { ascending: true })
-          : { data: [], error: null };
+        const itensDestaqueMapeados: ItemDestaque[] = resDestaques.itens.map((it) => ({
+          id: it.id,
+          titulo: it.titulo,
+          imagemUrl:
+            it.foto_url ||
+            "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&w=1800&q=85",
+          link: `/${lojaEncontrada.slug}/item/${it.codigo_publico}`,
+        }));
 
-        if (erroFotos) throw erroFotos;
+        // 2. Carrega catálogo geral da loja
+        const resItens = await listarItensCatalogoDaLoja({
+          lojaId: lojaEncontrada.id,
+          page: 1,
+          limit: 24,
+        });
 
-        const fotosPorItem = new Map<string, string>();
-        for (const foto of fotos ?? []) {
-          const url = supabase.storage
-            .from("fotos")
-            .getPublicUrl(foto.caminho_storage).data.publicUrl;
-          if (!fotosPorItem.has(foto.item_id) || foto.principal) {
-            fotosPorItem.set(foto.item_id, url);
-          }
-        }
-
-        setItens(
-          itensBase.map((item) => ({
-            id: item.id,
-            loja_id: item.loja_id,
-            loja_slug: dadosLoja.slug,
-            loja_nome: dadosLoja.nome_comercial,
-            titulo: item.titulo,
-            modalidade: item.modalidade,
-            descricao: item.descricao,
-            preco_base: Number(item.preco_base),
-            altura: Number(item.altura),
-            largura: Number(item.largura),
-            profundidade: Number(item.profundidade),
-            foto_url: fotosPorItem.get(item.id),
-            em_destaque: Boolean(item.em_destaque),
-          })),
-        );
+        if (!ativo) return;
+        setDestaques(itensDestaqueMapeados);
+        setItens(resItens.itens);
       } catch (erroCarregamento) {
-        console.error("Erro ao carregar loja pública:", erroCarregamento);
+        console.error("Erro ao carregar loja:", erroCarregamento);
         if (ativo) {
           setErro(
             erroCarregamento instanceof Error
@@ -109,6 +93,7 @@ function Loja() {
     }
 
     void carregar();
+
     return () => {
       ativo = false;
     };
@@ -116,6 +101,7 @@ function Loja() {
 
   async function adicionarAoCarrinho(item: ItemCatalogoResumo) {
     if (!loja) return;
+    setErroCarrinho("");
 
     const { data, error } = await supabase
       .from("itens")
@@ -124,7 +110,7 @@ function Loja() {
       .single();
 
     if (error) {
-      setErro(error.message);
+      setErroCarrinho(error.message);
       return;
     }
 
@@ -140,109 +126,199 @@ function Loja() {
       precoReposicao: Number(data.preco_reposicao),
       fotoUrl: item.foto_url,
     });
+
     setAdicionado(item.id);
     window.setTimeout(() => setAdicionado(""), 1800);
   }
 
-  return (
-    <div className="flex min-h-screen flex-col bg-page text-text">
-      <CabecalhoPublico />
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8">
-        {carregando ? (
+  if (carregando) {
+    return (
+      <div className="flex min-h-screen flex-col bg-page text-text">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 items-center justify-center px-4 py-8">
           <p role="status" className="text-sm text-text-secondary">
             Carregando loja...
           </p>
-        ) : erro ? (
-          <p role="alert" className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        </main>
+        <Rodape />
+      </div>
+    );
+  }
+
+  if (erro) {
+    return (
+      <div className="flex min-h-screen flex-col bg-page text-text">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 px-4 py-8">
+          <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {erro}
           </p>
-        ) : !loja ? (
-          <section className="rounded-card border border-dashed border-border bg-card p-8 text-center">
-            <h1 className="text-2xl font-bold">Loja não encontrada</h1>
-          </section>
-        ) : (
-          <>
-            <header className="rounded-card border border-border bg-card p-6">
-              <h1 className="text-3xl font-bold">{loja.nome_comercial}</h1>
-              {loja.descricao && (
-                <p className="mt-3 max-w-2xl text-text-secondary">
-                  {loja.descricao}
-                </p>
+        </main>
+        <Rodape />
+      </div>
+    );
+  }
+
+  if (naoEncontrada || !loja) {
+    return (
+      <div className="flex min-h-screen flex-col bg-page text-text">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold text-text">Loja não encontrada</h1>
+          <p className="mt-2 text-text-secondary">
+            A loja que você está tentando acessar não existe ou está desativada.
+          </p>
+        </main>
+        <Rodape />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col bg-page text-text">
+      <CabecalhoLoja loja={loja} />
+
+      <main className="flex-1">
+        {/* Capa da loja */}
+        <div className="relative h-48 w-full overflow-hidden bg-surface sm:h-64">
+          {loja.capa_url ? (
+            <img
+              src={loja.capa_url}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-primary/10 to-surface" />
+          )}
+        </div>
+
+        <div className="mx-auto max-w-6xl px-4">
+          {/* Perfil da loja */}
+          <div className="-mt-10 mb-8 flex items-end gap-4">
+            <div className="size-20 shrink-0 overflow-hidden rounded-full border-4 border-card bg-surface shadow-md">
+              {loja.logo_url ? (
+                <img
+                  src={loja.logo_url}
+                  alt={loja.nome_comercial}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center text-2xl font-bold text-text-secondary">
+                  {loja.nome_comercial.charAt(0).toUpperCase()}
+                </div>
               )}
+            </div>
+
+            <div className="pb-1">
+              <h1 className="text-2xl font-bold text-text">{loja.nome_comercial}</h1>
               {loja.cidade && loja.estado && (
-                <p className="mt-2 text-sm text-text-secondary">
+                <p className="mt-0.5 text-sm text-text-secondary">
                   {loja.cidade}, {loja.estado}
                 </p>
               )}
-            </header>
+            </div>
+          </div>
+
+          {loja.descricao && (
+            <p className="mb-8 max-w-2xl text-sm text-text-secondary">{loja.descricao}</p>
+          )}
+
+          {/* Destaques da loja */}
+          {destaques.length > 0 && (
+            <section className="mb-10">
+              <h2 className="mb-4 text-xl font-bold text-text">Destaques</h2>
+              <CarrosselDestaques itens={destaques} />
+            </section>
+          )}
+
+          {/* Catálogo da loja */}
+          <section className="pb-12">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-text">Catálogo da loja</h2>
+              <Link
+                to={`/${loja.slug}/buscar`}
+                className="text-sm font-semibold text-primary hover:underline"
+              >
+                Buscar com filtros →
+              </Link>
+            </div>
+
+            {erroCarrinho && (
+              <p
+                role="alert"
+                className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                {erroCarrinho}
+              </p>
+            )}
 
             {itens.length === 0 ? (
-              <p className="rounded-card border border-dashed border-border bg-card p-8 text-center text-text-secondary">
-                Esta loja ainda não possui itens disponíveis.
-              </p>
+              <div className="rounded-card border border-dashed border-border bg-card p-8 text-center text-sm text-text-secondary">
+                Nenhum item disponível nesta loja no momento.
+              </div>
             ) : (
-              <section
-                aria-label="Itens disponíveis"
-                className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3"
-              >
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {itens.map((item) => (
                   <article
                     key={item.id}
-                    className="overflow-hidden rounded-card border border-border bg-card"
+                    className="flex flex-col overflow-hidden rounded-card border border-border bg-card shadow-sm transition hover:shadow-md"
                   >
-                    <div className="h-56 overflow-hidden bg-surface">
-                      {item.foto_url ? (
-                        <img
-                          src={item.foto_url}
-                          alt={item.titulo}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-sm text-text-secondary">
-                          Sem imagem
+                    <Link
+                      to={`/${loja.slug}/item/${item.codigo_publico}`}
+                      className="block flex-1"
+                    >
+                      <div className="h-56 overflow-hidden bg-surface">
+                        {item.foto_url ? (
+                          <img
+                            src={item.foto_url}
+                            alt={item.titulo}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-sm text-text-secondary">
+                            Sem imagem
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-3 p-4 pb-2">
+                        <span className="text-xs font-medium uppercase text-primary">
+                          {item.modalidade === "aluguel" ? "Aluguel" : "Venda"}
+                        </span>
+
+                        <div>
+                          <h3 className="text-lg font-semibold text-text">{item.titulo}</h3>
+                          <p className="mt-1 line-clamp-2 text-sm text-text-secondary">
+                            {item.descricao}
+                          </p>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-3 p-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.08em] text-text-secondary">
-                          {item.modalidade === "aluguel"
-                            ? "Aluguel"
-                            : "Venda"}
+
+                        <p className="text-sm text-text-secondary">
+                          {item.altura} × {item.largura} × {item.profundidade} cm
                         </p>
-                        <h2 className="mt-1 text-xl font-semibold">
-                          {item.titulo}
-                        </h2>
                       </div>
-                      <p className="text-sm text-text-secondary">
-                        {item.descricao}
-                      </p>
-                      <p className="text-sm text-text-secondary">
-                        {item.altura} × {item.largura} × {item.profundidade} cm
-                      </p>
-                      <div className="flex items-center justify-between gap-3">
-                        <strong>{formatarPreco(item.preco_base)}</strong>
-                        <button
-                          type="button"
-                          onClick={() => void adicionarAoCarrinho(item)}
-                          className="rounded-button bg-primary px-4 py-2 text-sm font-semibold text-text-inverse"
-                        >
-                          {adicionado === item.id
-                            ? "Adicionado"
-                            : "Adicionar"}
-                        </button>
-                      </div>
+                    </Link>
+
+                    <div className="flex items-center justify-between gap-3 p-4 pt-2">
+                      <strong className="text-base font-semibold text-text">
+                        {formatarPreco(item.preco_base)}
+                      </strong>
+                      <button
+                        type="button"
+                        onClick={() => void adicionarAoCarrinho(item)}
+                        className="rounded-button bg-primary px-4 py-2 text-sm font-semibold text-text-inverse"
+                      >
+                        {adicionado === item.id ? "Adicionado" : "Adicionar"}
+                      </button>
                     </div>
                   </article>
                 ))}
-              </section>
+              </div>
             )}
-          </>
-        )}
+          </section>
+        </div>
       </main>
+
       <Rodape />
     </div>
   );
 }
 
-export default Loja;
+export default LojaHome;

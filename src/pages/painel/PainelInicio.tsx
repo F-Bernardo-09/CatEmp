@@ -2,9 +2,11 @@ import { Link } from "react-router";
 
 import LayoutPainel from "../../components/layout/LayoutPainel";
 import { useAuth } from "../../hooks/useAuth";
+import { useLojaDoUsuario } from "../../hooks/useLojaDoUsuario";
 
 function PainelInicio() {
   const { perfil } = useAuth();
+  const { loja } = useLojaDoUsuario();
 
   const nomeUsuario = perfil?.nome || "Usuário";
 
@@ -45,12 +47,23 @@ function PainelInicio() {
             Adicionar produto/serviço
           </Link>
 
-          <Link
-            to="/painel/loja"
-            className="flex items-center justify-center rounded-button border border-border bg-white px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
-          >
-            Ver minha loja
-          </Link>
+          {loja?.slug ? (
+            <Link
+              to={`/${loja.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center rounded-button border border-border bg-white px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
+            >
+              Ver minha loja pública ↗
+            </Link>
+          ) : (
+            <Link
+              to="/painel/loja"
+              className="flex items-center justify-center rounded-button border border-border bg-white px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
+            >
+              Configurar loja
+            </Link>
+          )}
         </section>
 
         {/* Resumo da loja */}

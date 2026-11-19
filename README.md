@@ -1,137 +1,156 @@
-# CatEmp
+# CATEMP
 
-Aplicação para gestão de acervo, catálogo e pedidos de aluguel/venda.
+Plataforma web onde micro-empreendedoras criam e administram **suas próprias lojas online individuais**. Cada loja tem URL exclusiva, identidade própria e catálogo isolado. O cliente final acessa a loja de uma vendedora, navega pelo catálogo dela e envia uma solicitação de orçamento pelo WhatsApp.
+
+> **O CATEMP não é um marketplace.** Não existe catálogo global, busca entre lojas ou vitrine que misture produtos de vendedoras diferentes. Cada loja é um espaço independente — como um site próprio da empreendedora, hospedado na plataforma.
+
+## Stack
+
+- **Front-end:** React · TypeScript · Vite · Tailwind CSS · React Router
+- **Banco e auth:** Supabase (PostgreSQL · Auth · Storage · Edge Functions · RLS)
+- **Hospedagem:** Vercel
 
 ## Requisitos
 
-- Node.js 20+
+- Node.js 20.19+
 - npm
 - Supabase CLI
 - Git
 
 ## Setup local
 
-1. Instale dependências:
+1. Instale as dependências:
 
 ```bash
 npm install
 ```
 
-2. Inicie o Supabase local:
-
-```bash
-supabase start
-```
-
-3. Aplique as migrations:
-
-```bash
-supabase db push
-```
-
-4. Se quiser servir as Edge Functions localmente:
-
-```bash
-supabase functions serve
-```
-
-5. Rode a aplicação:
-
-```bash
-npm run dev -- --host 0.0.0.0
-```
-
-6. Configure as variáveis de ambiente do frontend com os valores locais do Supabase:
+2. Copie as variáveis de ambiente:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Arquivo esperado:
+Preencha com os valores do Supabase local:
 
 ```env
 VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_ANON_KEY=<anon-key-local>
 ```
 
-A chave anon pode ser obtida no terminal do `supabase start` ou no painel local do Supabase Studio.
+3. Inicie o Supabase local:
 
-## Teste do fluxo básico
+```bash
+supabase start
+```
 
-### 1) Criar usuário admin
+4. Aplique as migrations:
 
-- Acesse o Supabase Studio.
-- Crie um usuário em Authentication.
-- Atualize o perfil na tabela `public.usuarios` com `papel = 'admin'`.
+```bash
+supabase db push
+```
 
-Exemplo SQL:
+5. (Opcional) Sirva as Edge Functions localmente:
+
+```bash
+supabase functions serve
+```
+
+6. Rode a aplicação:
+
+```bash
+npm run dev
+```
+
+A chave anon pode ser obtida no terminal do `supabase start` ou no painel do Supabase Studio.
+
+## Primeiro administrador
+
+1. Crie um usuário no Supabase Studio (Authentication) com o e-mail `admin@catemp.local` (ou outro).
+2. A migração `0014_admin_seed.sql` cria o perfil de admin para esse e-mail. Se usar outro, ajuste a migration ou insira manualmente:
 
 ```sql
 insert into public.usuarios (id, nome, papel, situacao)
-values (
-  '<id-do-usuario-auth>',
-  'Administrador',
-  'admin',
-  'ativa'
-)
+values ('<id-do-usuario-auth>', 'Administrador', 'admin', 'ativa')
 on conflict (id) do update
-set nome = excluded.nome,
-    papel = 'admin',
-    situacao = 'ativa';
+set papel = 'admin', situacao = 'ativa';
 ```
 
-### 2) Login
+## Como funciona
 
-- Acesse `/entrar`.
-- Faça login com o usuário admin.
-- Verifique se o guard de rota redireciona corretamente para `/painel`.
+### Perfis de uso
 
-### 3) Gerar token de acesso
+| Perfil | O que faz | Login |
+|---|---|---|
+| **Cliente** | Acessa a loja via link, navega pelo catálogo, seleciona itens e envia orçamento pelo WhatsApp. | Não |
+| **Vendedora** | Gerencia a própria loja: itens, fotos, categorias e temas. | E-mail + senha |
+| **Admin** | Libera novas vendedoras gerando tokens de acesso. | E-mail + senha |
 
-- Acesse `/admin/tokens`.
-- Gere um token para um destinatário fictício.
-- Confirme que a resposta retorna `token` e `expira_em`.
-- Verifique que o hash fica no banco e nunca o token em texto puro.
+### Fluxo de criação de loja
 
-### 4) Cadastro de loja e categorias
+1. A interessada pede um token ao admin (via WhatsApp, fora do sistema).
+2. O admin gera o token em `/admin/tokens` e envia o código.
+3. Em `/cadastro`, a pessoa usa o token + dados pessoais → conta e loja são criadas.
+4. A loja fica pública em `/<slug-da-loja>`.
 
-- Entre no painel.
-- Cadastre a loja com slug e WhatsApp válidos.
-- Crie categorias e temas.
-- Confirme que o slug é validado e que o campo de WhatsApp rejeita letras.
+### Rotas
 
-### 5) Cadastro de item
+Toda rota pública pertence a uma loja. O slug é o primeiro segmento:
 
-- Vá em `/painel/itens`.
-- Crie um item com todos os campos obrigatórios:
-  - nome
-  - modalidade
-  - categoria
-  - foto principal
-  - descrição
-  - dimensões
-  - valor base
-  - valor de reposição
-- Tente salvar sem dados obrigatórios e confirme a validação.
+| Rota | Descrição |
+|---|---|
+| `/:slug` | Vitrine da loja (perfil, destaques, catálogo) |
+| `/:slug/buscar` | Busca dentro da loja |
+| `/:slug/item/:codigo` | Detalhe do item (fotos, temas, extras) |
+| `/:slug/carrinho` | Carrinho da loja + envio WhatsApp |
+| `/entrar` | Login da vendedora |
+| `/cadastro` | Cadastro com token |
+| `/painel/*` | Painel da vendedora (exige login) |
+| `/admin/*` | Administração (exige admin) |
 
-### 6) Verificação final
+### Carrinho e WhatsApp
 
-- A página pública `/buscar` deve listar itens válidos.
-- O detalhe do item deve renderizar imagem, descrição e valor.
-- O orçamento deve abrir o WhatsApp com mensagem pré-formatada.
+- O carrinho vive no navegador (`sessionStorage`), pertence a **uma única loja**.
+- O envio gera um link `wa.me` com mensagem pré-preenchida para o WhatsApp da loja.
+- **Nenhuma venda é confirmada pelo sistema.** Preço e disponibilidade são combinados direto no WhatsApp.
 
-## Validação de build
+## Estrutura do projeto
 
-Antes de fechar qualquer entrega, rode:
+```
+catemp/
+├── supabase/           # banco, edge functions e testes
+│   ├── migrations/     # uma migração por assunto
+│   ├── functions/      # gerar-token, cadastrar-vendedora, revogar-token
+│   └── tests/
+└── src/
+    ├── app/            # router, providers, guards
+    ├── lib/            # supabase client, whatsapp, slug, formatadores
+    ├── schemas/        # validações Zod
+    ├── services/       # acesso a dados (supabase-js e Edge Functions)
+    ├── contexts/       # AuthContext, CarrinhoContext
+    ├── hooks/          # useAuth, useCarrinho, useLojaDoUsuario, queries/
+    ├── components/     # ui/, layout/, catalogo/, carrinho/, painel/, admin/
+    └── pages/          # publicas/, painel/, admin/
+```
+
+## Testes
+
+```bash
+npm test
+```
+
+## Build
 
 ```bash
 npm run build
 ```
 
-Se o comando sair com código 0, a aplicação compila corretamente.
+## Documentação completa
 
-## Observações importantes
+Veja [docs/CATEMP_documentacao_tecnica.md](docs/CATEMP_documentacao_tecnica.md) para a documentação técnica completa: visão do projeto, banco de dados, permissões, rotas, carrinho, autenticação e fluxos.
 
-- O cadastro público do Auth deve ficar desligado no ambiente compartilhado, conforme a configuração do Supabase.
-- Dados pessoais e e-mails reais não devem entrar em migrações ou commits públicos.
-- Cada ambiente local pode ter seu próprio admin inicial, sem colidir com o repositório.
+## Observações
+
+- O cadastro público do Auth fica **desligado**. Novas contas só com token.
+- Dados pessoais e e-mails reais não devem entrar em migrations ou commits públicos.
+- Cada ambiente local pode ter seu próprio admin, sem colidir com o repositório.

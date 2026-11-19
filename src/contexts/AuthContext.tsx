@@ -9,7 +9,7 @@ interface AuthContextData {
   perfil: Usuario | null;
   carregando: boolean;
   autenticado: boolean;
-  entrar: (email: string, senha: string) => Promise<void>;
+  entrar: (email: string, senha: string) => Promise<Usuario>;
   sair: () => Promise<void>;
 }
 
@@ -79,8 +79,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, []);
 
-  async function entrar(email: string, senha: string) {
-    await authService.entrar(email, senha);
+  async function entrar(email: string, senha: string): Promise<Usuario> {
+    const sessao = await authService.entrar(email, senha);
+
+    setUsuario(sessao.usuario);
+    setPerfil(sessao.perfil);
+    setCarregando(false);
+
+    return sessao.perfil;
   }
 
   async function sair() {
