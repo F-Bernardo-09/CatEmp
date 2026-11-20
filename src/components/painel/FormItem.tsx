@@ -1,3 +1,5 @@
+import { useParams } from "react-router";
+
 import LayoutPainel from "../layout/LayoutPainel";
 import EtapaAdicionais from "./forms-item/EtapaAdicionais";
 import EtapaCategorias from "./forms-item/EtapaCategorias";
@@ -5,15 +7,18 @@ import EtapaDadosBasicos from "./forms-item/EtapaDadosBasicos";
 import EtapaImagensTemas from "./forms-item/EtapaImagensTemas/EtapaImagensTemas";
 import useFormItem from "./forms-item/useFormItem";
 
-interface FormItemProps {
-  itemId?: string;
-}
+function FormItem() {
+  const { id: itemId } = useParams<{ id: string }>();
 
-function FormItem({ itemId }: FormItemProps) {
   const {
+    modoEdicao,
+    carregandoItem,
+    erroCarregar,
     etapaAtual,
     etapaRef,
     dados,
+    salvando,
+    erroSalvar,
     categoriasDisponiveis,
     temasDisponiveis,
     erroImagens,
@@ -36,7 +41,28 @@ function FormItem({ itemId }: FormItemProps) {
     avancarEtapa,
     voltarEtapa,
     finalizarFormulario,
-  } = useFormItem();
+  } = useFormItem(itemId);
+
+  if (carregandoItem) {
+    return (
+      <LayoutPainel>
+        <p className="text-sm text-text-secondary">Carregando item…</p>
+      </LayoutPainel>
+    );
+  }
+
+  if (erroCarregar) {
+    return (
+      <LayoutPainel>
+        <p
+          role="alert"
+          className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
+          {erroCarregar}
+        </p>
+      </LayoutPainel>
+    );
+  }
 
   return (
     <LayoutPainel>
@@ -44,7 +70,7 @@ function FormItem({ itemId }: FormItemProps) {
         <header>
           <p className="text-sm text-text-secondary">Painel da loja</p>
           <h1 className="mt-1 text-2xl font-bold text-text">
-            {itemId ? "Editar item" : "Cadastrar item"}
+            {modoEdicao ? "Editar item" : "Cadastrar item"}
           </h1>
         </header>
 
@@ -75,15 +101,31 @@ function FormItem({ itemId }: FormItemProps) {
             <EtapaDadosBasicos
               etapaRef={etapaRef}
               tipo={dados.tipo}
+              modalidade={dados.modalidade}
               titulo={dados.titulo}
               descricao={dados.descricao}
               preco={dados.preco}
+              altura={dados.altura}
+              largura={dados.largura}
+              profundidade={dados.profundidade}
+              precoReposicao={dados.precoReposicao}
               onTipoChange={(tipo) => atualizarCampo("tipo", tipo)}
+              onModalidadeChange={(modalidade) =>
+                atualizarCampo("modalidade", modalidade)
+              }
               onTituloChange={(titulo) => atualizarCampo("titulo", titulo)}
               onDescricaoChange={(descricao) =>
                 atualizarCampo("descricao", descricao)
               }
               onPrecoChange={(preco) => atualizarCampo("preco", preco)}
+              onAlturaChange={(altura) => atualizarCampo("altura", altura)}
+              onLarguraChange={(largura) => atualizarCampo("largura", largura)}
+              onProfundidadeChange={(profundidade) =>
+                atualizarCampo("profundidade", profundidade)
+              }
+              onPrecoReposicaoChange={(precoReposicao) =>
+                atualizarCampo("precoReposicao", precoReposicao)
+              }
             />
           )}
 
@@ -125,36 +167,50 @@ function FormItem({ itemId }: FormItemProps) {
 
           <nav
             aria-label="Navegação do formulário"
-            className="flex items-center justify-between gap-3 border-t border-border pt-6"
+            className="flex flex-col gap-4 border-t border-border pt-6"
           >
-            {etapaAtual > 1 ? (
-              <button
-                type="button"
-                onClick={voltarEtapa}
-                className="rounded-button border border-border bg-card px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface"
+            {erroSalvar && (
+              <p
+                role="alert"
+                className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
               >
-                Voltar
-              </button>
-            ) : (
-              <span />
+                {erroSalvar}
+              </p>
             )}
 
-            {etapaAtual < totalEtapas ? (
-              <button
-                type="button"
-                onClick={avancarEtapa}
-                className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover"
-              >
-                Próximo
-              </button>
-            ) : (
-              <button
-                type="submit"
-                className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover"
-              >
-                Concluir
-              </button>
-            )}
+            <div className="flex items-center justify-between gap-3">
+              {etapaAtual > 1 ? (
+                <button
+                  type="button"
+                  onClick={voltarEtapa}
+                  disabled={salvando}
+                  className="rounded-button border border-border bg-card px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Voltar
+                </button>
+              ) : (
+                <span />
+              )}
+
+              {etapaAtual < totalEtapas ? (
+                <button
+                  type="button"
+                  onClick={avancarEtapa}
+                  disabled={salvando}
+                  className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Próximo
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={salvando}
+                  className="rounded-button bg-primary px-8 py-3 text-sm font-semibold text-text-inverse transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {salvando ? "Salvando…" : "Concluir"}
+                </button>
+              )}
+            </div>
           </nav>
         </form>
       </div>

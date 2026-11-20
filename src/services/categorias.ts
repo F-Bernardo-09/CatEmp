@@ -111,3 +111,61 @@ export async function excluirCategoria(id: string): Promise<void> {
 
   if (error) throw error;
 }
+
+
+/**
+ * Vincula categorias a um item substituindo todas as associações anteriores.
+ * Recebe os nomes das categorias; cria as que ainda não existem na modalidade
+ * do item e grava os registros em item_categorias.
+ */
+export async function vincularCategorias(
+  itemId: string,
+  modalidade: ModalidadeCategoria,
+  nomes: string[],
+): Promise<void> {
+
+  const lojaId = await obterLojaId();
+
+  // Garante que cada categoria existe, criando as novas
+  const categoriaIds: string[] = [];
+  for (const nomeInformado of nomes) {
+    const nome = nomeInformado.trim();
+    const slug = gerarSlug(nome);
+
+    const { data, error } = await supabase
+      .from("categorias")
+      .upsert(
+        { loja_id: lojaId, modalidade, nome, slug },
+        { onConflict: "loja_id,modalidade,slug" },
+      )
+      .select("id")
+      .single();
+
+    if (error) throw error;
+    categoriaIds.push(data.id);
+  }
+
+  // Remove vínculos anteriores e insere os novos
+  const { error: erroDelete } = await supabase
+    .from("item_categorias")
+    .delete()
+    .eq("item_id", itemId)
+    .eq("loja_id", lojaId);
+
+  if (erroDelete) throw erroDelete;
+
+  if (categoriaIds.length > 0) {
+    const registros = categoriaIds.map((categoriaId) => ({
+      item_id: itemId,
+      loja_id: lojaId,
+      modalidade,
+      categoria_id: categoriaId,
+    }));
+
+    const { error: erroInsert } = await supabase
+      .from("item_categorias")
+      .insert(registros);
+
+    if (erroInsert) throw erroInsert;
+  }
+}

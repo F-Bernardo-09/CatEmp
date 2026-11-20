@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router";
 import type { FormEvent } from "react";
 
 import { supabase } from "../../../lib/supabase";
+import { vincularCategorias } from "../../../services/categorias";
+import { listarExtrasServico, criarExtrasServico } from "../../../services/extras";
+import { enviarFotosItem, obterEstadoFotos } from "../../../services/fotos";
+import { criarItem, atualizarItem, obterItem } from "../../../services/itens";
 import { listarTemas } from "../../../services/temas";
 import type { AdicionalServico, DadosFormulario } from "./types";
 
@@ -23,15 +28,35 @@ const etapaAdicionais: Etapa = {
   titulo: "Adicionais do serviço",
 };
 
-function useFormItem() {
+function useFormItem(itemId?: string) {
+  const modoEdicao = Boolean(itemId);
+  const navigate = useNavigate();
+
+  // Guarda o progresso do salvamento: se algo falhar no meio, "Concluir"
+  // continua de onde parou em vez de criar outro item ou repetir fotos.
+  const progressoSalvamento = useRef({
+    itemId: "",
+    lojaId: "",
+    fotosEnviadas: false,
+    categoriasVinculadas: false,
+  });
+
   const [etapaAtual, setEtapaAtual] = useState(1);
   const etapaRef = useRef<HTMLFieldSetElement>(null);
 
+  const [carregandoItem, setCarregandoItem] = useState(modoEdicao);
+  const [erroCarregar, setErroCarregar] = useState("");
+
   const [dados, setDados] = useState<DadosFormulario>({
     tipo: "",
+    modalidade: "",
     titulo: "",
     descricao: "",
     preco: "",
+    altura: "",
+    largura: "",
+    profundidade: "",
+    precoReposicao: "",
     imagens: [],
     categorias: [],
     adicionais: [],
@@ -43,6 +68,7 @@ function useFormItem() {
   const [temasDisponiveis, setTemasDisponiveis] = useState<string[]>([]);
   const [erroImagens, setErroImagens] = useState("");
 
+  // Carrega temas da loja
   useEffect(() => {
     let ativo = true;
 
@@ -71,6 +97,81 @@ function useFormItem() {
       ativo = false;
     };
   }, []);
+
+  // Carrega dados do item existente no modo edição
+  useEffect(() => {
+    if (!itemId) return;
+
+    let ativo = true;
+    setCarregandoItem(true);
+    setErroCarregar("");
+
+    async function carregarItemExistente() {
+      try {
+        // Dados básicos do item
+        const item = await obterItem(itemId!);
+
+        // Categorias vinculadas ao item
+        const { data: catData, error: catError } = await supabase
+          .from("item_categorias")
+          .select("categorias(nome)")
+          .eq("item_id", itemId);
+
+        if (catError) throw catError;
+
+        const nomesCategoria = (catData ?? [])
+          .map((row: any) => row.categorias?.nome as string | undefined)
+          .filter((nome): nome is string => Boolean(nome));
+
+        // Adicionais (somente para serviços)
+        let adicionaisCarregados: AdicionalServico[] = [];
+        if (item.tipo === "servico") {
+          try {
+            const extras = await listarExtrasServico(itemId!);
+            adicionaisCarregados = extras.map((extra) => ({
+              id: extra.id,
+              nome: extra.nome,
+              precoMinimo: String(extra.preco_minimo),
+              imagem: null, // arquivos originais não são re-carregáveis
+            }));
+          } catch (erroExtras) {
+            console.warn("Não foi possível carregar os adicionais:", erroExtras);
+          }
+        }
+
+        if (!ativo) return;
+
+        setDados({
+          tipo: item.tipo,
+          modalidade: item.modalidade,
+          titulo: item.titulo,
+          descricao: item.descricao,
+          preco: String(item.preco_base),
+          altura: String(item.altura),
+          largura: String(item.largura),
+          profundidade: String(item.profundidade),
+          precoReposicao: String(item.preco_reposicao),
+          imagens: [], // fotos existentes não são recarregadas como File
+          categorias: nomesCategoria,
+          adicionais: adicionaisCarregados,
+        });
+
+        setCategoriasDisponiveis(nomesCategoria);
+      } catch (erro) {
+        if (!ativo) return;
+        setErroCarregar(
+          erro instanceof Error ? erro.message : "Erro ao carregar o item.",
+        );
+      } finally {
+        if (ativo) setCarregandoItem(false);
+      }
+    }
+
+    void carregarItemExistente();
+    return () => {
+      ativo = false;
+    };
+  }, [itemId]);
 
   const etapas =
     dados.tipo === "servico"
@@ -266,7 +367,7 @@ function useFormItem() {
   }
 
   function avancarEtapa() {
-    if (etapaConfig?.id === "imagens" && dados.imagens.length === 0) {
+    if (etapaConfig?.id === "imagens" && dados.imagens.length === 0 && !modoEdicao) {
       setErroImagens("Adicione pelo menos uma foto para continuar.");
       return;
     }
@@ -281,15 +382,119 @@ function useFormItem() {
     setEtapaAtual((etapa) => Math.max(etapa - 1, 1));
   }
 
+  const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState("");
+
+  async function salvarItem() {
+    if (!dados.tipo || !dados.modalidade) {
+      setErroSalvar("Selecione o tipo e a modalidade do item.");
+      return;
+    }
+
+    setSalvando(true);
+    setErroSalvar("");
+
+    try {
+      const progresso = progressoSalvamento.current;
+
+      const camposItem = {
+        tipo: dados.tipo,
+        modalidade: dados.modalidade,
+        titulo: dados.titulo.trim(),
+        descricao: dados.descricao,
+        preco_base: Number(dados.preco),
+        preco_reposicao: Number(dados.precoReposicao),
+        altura: Number(dados.altura),
+        largura: Number(dados.largura),
+        profundidade: Number(dados.profundidade),
+      };
+
+      // 1) Item: edita se já existe (edição ou tentativa anterior), senão cria
+      const idExistente = itemId ?? progresso.itemId;
+      let resolvedItemId: string;
+      let lojaId: string;
+
+      if (idExistente) {
+        const item = await atualizarItem(idExistente, camposItem);
+        resolvedItemId = item.id;
+        lojaId = item.loja_id;
+      } else {
+        const item = await criarItem(camposItem);
+        resolvedItemId = item.id;
+        lojaId = item.loja_id;
+      }
+      progresso.itemId = resolvedItemId;
+      progresso.lojaId = lojaId;
+
+      // 2) Fotos novas (na edição, as já salvas continuam; só entram as adicionadas)
+      if (dados.imagens.length > 0 && !progresso.fotosEnviadas) {
+        const existentes = await obterEstadoFotos(resolvedItemId);
+        await enviarFotosItem(
+          resolvedItemId,
+          lojaId,
+          dados.imagens.map((imagem, indice) => ({
+            arquivo: imagem.arquivo,
+            tema: imagem.tema,
+            textoAlternativo: imagem.textoAlternativo,
+            posicao: existentes.proximaPosicao + indice,
+            principal: existentes.temPrincipal ? false : imagem.principal,
+          })),
+          existentes,
+        );
+        progresso.fotosEnviadas = true;
+      }
+
+      // 3) Categorias (substitui todas; lista vazia limpa os vínculos)
+      if (!progresso.categoriasVinculadas) {
+        await vincularCategorias(
+          resolvedItemId,
+          dados.modalidade,
+          dados.categorias,
+        );
+        progresso.categoriasVinculadas = true;
+      }
+
+      // 4) Adicionais novos (só serviço; os já salvos não têm File)
+      if (dados.tipo === "servico") {
+        const adicionaisNovos = dados.adicionais.filter(
+          (a) => a.imagem !== null,
+        );
+        if (adicionaisNovos.length > 0) {
+          await criarExtrasServico(
+            resolvedItemId,
+            adicionaisNovos.map((a) => ({
+              nome: a.nome,
+              precoMinimo: a.precoMinimo,
+              imagem: a.imagem!,
+            })),
+          );
+        }
+      }
+
+      navigate("/painel/itens");
+    } catch (erro) {
+      setErroSalvar(
+        erro instanceof Error ? erro.message : "Erro ao salvar o item.",
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
   function finalizarFormulario(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    console.log(dados);
+    void salvarItem();
   }
 
   return {
+    modoEdicao,
+    carregandoItem,
+    erroCarregar,
     etapaAtual,
     etapaRef,
     dados,
+    salvando,
+    erroSalvar,
     categoriasDisponiveis,
     temasDisponiveis,
     erroImagens,

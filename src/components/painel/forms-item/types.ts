@@ -1,4 +1,5 @@
 export type TipoItem = "produto" | "servico";
+export type ModalidadeItem = "aluguel" | "venda";
 
 export interface ImagemItem {
   id: string;
@@ -17,9 +18,14 @@ export interface AdicionalServico {
 
 export interface DadosFormulario {
   tipo: TipoItem | "";
+  modalidade: ModalidadeItem | "";
   titulo: string;
   descricao: string;
   preco: string;
+  altura: string;
+  largura: string;
+  profundidade: string;
+  precoReposicao: string;
   imagens: ImagemItem[];
   categorias: string[];
   adicionais: AdicionalServico[];
