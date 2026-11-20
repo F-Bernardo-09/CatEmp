@@ -95,7 +95,7 @@ function Buscar() {
 
     let ativa = true;
     setErroCategorias("");
-    void listarCategoriasPublicasDaLoja(loja.id, modalidade)
+    void listarCategoriasPublicasDaLoja(loja.id)
       .then((resultado) => {
         if (ativa) setCategorias(resultado);
       })
@@ -114,7 +114,7 @@ function Buscar() {
     return () => {
       ativa = false;
     };
-  }, [loja, modalidade, tentativaCategorias]);
+  }, [loja, tentativaCategorias]);
 
   async function carregarItens(
     proximaPagina = 1,
@@ -187,10 +187,6 @@ function Buscar() {
       params.delete(chave);
     }
 
-    if (chave === "modalidade") {
-      params.delete("categoria");
-    }
-
     setSearchParams(params);
   }
 
@@ -255,39 +251,47 @@ function Buscar() {
             <h1 className="mt-1 text-3xl font-bold text-text">Buscar produtos e serviços</h1>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => alterarFiltro("modalidade", "")}
-              className={[
-                "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                !modalidade
-                  ? "bg-primary text-text-inverse"
-                  : "border border-border bg-white text-text hover:bg-surface",
-              ].join(" ")}
+          <section aria-labelledby="filtro-modalidade">
+            <h2
+              id="filtro-modalidade"
+              className="mb-2 text-sm font-semibold text-text"
             >
-              Todos
-            </button>
-            {(["aluguel", "venda"] as const).map((tipo) => (
+              Modalidade
+            </h2>
+            <div className="flex flex-wrap gap-2">
               <button
-                key={tipo}
                 type="button"
-                onClick={() => alterarFiltro("modalidade", tipo)}
+                onClick={() => alterarFiltro("modalidade", "")}
                 className={[
                   "rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                  modalidade === tipo
+                  !modalidade
                     ? "bg-primary text-text-inverse"
                     : "border border-border bg-white text-text hover:bg-surface",
                 ].join(" ")}
               >
-                {tipo === "aluguel" ? "Aluguel" : "Venda"}
+                Todas
               </button>
-            ))}
-          </div>
+              {(["aluguel", "venda"] as const).map((tipo) => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => alterarFiltro("modalidade", tipo)}
+                  className={[
+                    "rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    modalidade === tipo
+                      ? "bg-primary text-text-inverse"
+                      : "border border-border bg-white text-text hover:bg-surface",
+                  ].join(" ")}
+                >
+                  {tipo === "aluguel" ? "Aluguel" : "Venda"}
+                </button>
+              ))}
+            </div>
+          </section>
         </header>
 
         <section className="rounded-card border border-border bg-card p-4">
-          <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
+          <div className="grid gap-4 md:grid-cols-2">
             <label className="form-field">
               <span className="form-label">Buscar na loja</span>
               <input
@@ -299,13 +303,13 @@ function Buscar() {
             </label>
 
             <label className="form-field">
-              <span className="form-label">Categoria</span>
+              <span className="form-label">Tags</span>
               <select
                 className="form-control"
                 value={categoria}
                 onChange={(evento) => alterarFiltro("categoria", evento.target.value)}
               >
-                <option value="">Todas as categorias</option>
+                <option value="">Todas as tags</option>
                 {categorias.map((cat) => (
                   <option key={cat.id} value={cat.nome}>
                     {cat.nome}
@@ -390,8 +394,8 @@ function Buscar() {
                       </div>
 
                       <div className="flex items-center justify-between text-sm text-text-secondary">
-                        <span>{item.altura} × {item.largura} × {item.profundidade} cm</span>
                         <strong className="text-base font-semibold text-text">
+                          {item.tipo === "servico" && "A partir de "}
                           {formatarPreco(item.preco_base)}
                         </strong>
                       </div>

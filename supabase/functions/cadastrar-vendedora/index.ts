@@ -3,24 +3,6 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { sha256 } from "../_shared/hash.ts";
 import { responder } from "../_shared/respostas.ts";
 
-const CATEGORIAS_PADRAO = [
-  { modalidade: "aluguel", nome: "Mesas diversas" },
-  { modalidade: "aluguel", nome: "Vasos de flores" },
-  { modalidade: "aluguel", nome: "Cortinas" },
-  { modalidade: "aluguel", nome: "Tapetes" },
-  { modalidade: "aluguel", nome: "Bandejas" },
-  { modalidade: "aluguel", nome: "Arcos temáticos" },
-  { modalidade: "aluguel", nome: "Luminárias" },
-  { modalidade: "aluguel", nome: "Balões" },
-  { modalidade: "aluguel", nome: "Cilindros" },
-  { modalidade: "aluguel", nome: "Bancos" },
-  { modalidade: "aluguel", nome: "Pratos" },
-  { modalidade: "aluguel", nome: "Talheres" },
-  { modalidade: "aluguel", nome: "Ursos" },
-  { modalidade: "venda", nome: "Colchas de cama" },
-  { modalidade: "venda", nome: "Cortinas" },
-];
-
 interface DadosCadastro {
   nome?: unknown;
   email?: unknown;
@@ -154,7 +136,6 @@ Deno.serve(async (requisicao) => {
     const usuarioId = usuarioCriado.user.id;
     let tokenConsumido = false;
     let lojaId: string | null = null;
-    let categoriasCriadas = false;
 
     try {
       const { data: tokenAtualizado, error: erroConsumirToken } = await supabase
@@ -208,18 +189,6 @@ Deno.serve(async (requisicao) => {
       if (erroLoja) throw erroLoja;
       lojaId = loja.id;
 
-      const categorias = CATEGORIAS_PADRAO.map(({ modalidade, nome: nomeCategoria }) => ({
-        loja_id: loja.id,
-        modalidade,
-        nome: nomeCategoria,
-        slug: criarSlug(nomeCategoria),
-      }));
-      const { error: erroCategorias } = await supabase
-        .from("categorias")
-        .insert(categorias);
-      if (erroCategorias) throw erroCategorias;
-      categoriasCriadas = true;
-
       return responder(201, {
         mensagem: "Cadastro concluído.",
         usuario_id: usuarioId,
@@ -236,14 +205,6 @@ Deno.serve(async (requisicao) => {
           .eq("id", registroToken.id)
           .eq("usado_por", usuarioId);
         if (error) errosRollback.push(`Token: ${erroTexto(error)}`);
-      }
-
-      if (lojaId && categoriasCriadas) {
-        const { error } = await supabase
-          .from("categorias")
-          .delete()
-          .eq("loja_id", lojaId);
-        if (error) errosRollback.push(`Categorias: ${erroTexto(error)}`);
       }
 
       if (lojaId) {

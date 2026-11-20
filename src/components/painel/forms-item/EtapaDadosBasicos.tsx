@@ -12,19 +12,15 @@ interface EtapaDadosBasicosProps {
   titulo: string;
   descricao: string;
   preco: string;
-  altura: string;
-  largura: string;
-  profundidade: string;
   precoReposicao: string;
+  emDestaque: boolean;
   onTipoChange: (tipo: TipoItem | "") => void;
   onModalidadeChange: (modalidade: ModalidadeItem | "") => void;
   onTituloChange: (titulo: string) => void;
   onDescricaoChange: (descricao: string) => void;
   onPrecoChange: (preco: string) => void;
-  onAlturaChange: (altura: string) => void;
-  onLarguraChange: (largura: string) => void;
-  onProfundidadeChange: (profundidade: string) => void;
   onPrecoReposicaoChange: (precoReposicao: string) => void;
+  onDestaqueChange: (emDestaque: boolean) => void;
 }
 
 function EtapaDadosBasicos({
@@ -34,19 +30,15 @@ function EtapaDadosBasicos({
   titulo,
   descricao,
   preco,
-  altura,
-  largura,
-  profundidade,
   precoReposicao,
+  emDestaque,
   onTipoChange,
   onModalidadeChange,
   onTituloChange,
   onDescricaoChange,
   onPrecoChange,
-  onAlturaChange,
-  onLarguraChange,
-  onProfundidadeChange,
   onPrecoReposicaoChange,
+  onDestaqueChange,
 }: EtapaDadosBasicosProps) {
   const [erros, setErros] = useState<Record<string, string>>({});
 
@@ -158,6 +150,7 @@ function EtapaDadosBasicos({
           rows: 5,
           maxLength: 500,
           placeholder: "Descrição",
+          required: true,
           value: descricao,
           onInvalid: (event) =>
             validarCampo("a descrição", "descricao", event),
@@ -172,10 +165,10 @@ function EtapaDadosBasicos({
         id="preco"
         label={
           tipo === "servico"
-            ? "Valor mínimo (R$)"
+            ? "Preço mínimo (R$)"
             : tipo === "produto"
-              ? "Valor do produto (R$)"
-              : "Valor (R$)"
+              ? "Preço fixo (R$)"
+              : "Preço (R$)"
         }
         error={erros.preco}
         controlProps={{
@@ -193,6 +186,17 @@ function EtapaDadosBasicos({
           },
         }}
       />
+
+      <label className="flex items-center gap-3 text-sm font-medium text-text">
+        <input
+          name="emDestaque"
+          type="checkbox"
+          checked={emDestaque}
+          onChange={(event) => onDestaqueChange(event.target.checked)}
+          className="size-4 accent-primary"
+        />
+        Exibir este item em destaque no catálogo
+      </label>
 
       <CampoFormulario
         id="precoReposicao"
@@ -214,73 +218,6 @@ function EtapaDadosBasicos({
           },
         }}
       />
-
-      <fieldset className="rounded-card border border-border p-4">
-        <legend className="px-1 text-sm font-semibold text-text">
-          Dimensões (cm)
-        </legend>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoFormulario
-            id="altura"
-            label="Altura"
-            error={erros.altura}
-            controlProps={{
-              name: "altura",
-              type: "number",
-              min: "0.01",
-              step: "0.01",
-              placeholder: "0,00",
-              required: true,
-              value: altura,
-              onInvalid: (event) => validarCampo("a altura", "altura", event),
-              onChange: (event) => {
-                limparErro("altura", event);
-                onAlturaChange(event.target.value);
-              },
-            }}
-          />
-          <CampoFormulario
-            id="largura"
-            label="Largura"
-            error={erros.largura}
-            controlProps={{
-              name: "largura",
-              type: "number",
-              min: "0.01",
-              step: "0.01",
-              placeholder: "0,00",
-              required: true,
-              value: largura,
-              onInvalid: (event) =>
-                validarCampo("a largura", "largura", event),
-              onChange: (event) => {
-                limparErro("largura", event);
-                onLarguraChange(event.target.value);
-              },
-            }}
-          />
-          <CampoFormulario
-            id="profundidade"
-            label="Profundidade"
-            error={erros.profundidade}
-            controlProps={{
-              name: "profundidade",
-              type: "number",
-              min: "0.01",
-              step: "0.01",
-              placeholder: "0,00",
-              required: true,
-              value: profundidade,
-              onInvalid: (event) =>
-                validarCampo("a profundidade", "profundidade", event),
-              onChange: (event) => {
-                limparErro("profundidade", event);
-                onProfundidadeChange(event.target.value);
-              },
-            }}
-          />
-        </div>
-      </fieldset>
     </fieldset>
   );
 }

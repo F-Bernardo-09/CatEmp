@@ -59,9 +59,7 @@ function FormularioTeste() {
     formulario.atualizarCampo("descricao", "Mesa para eventos.");
     formulario.atualizarCampo("preco", "50");
     formulario.atualizarCampo("precoReposicao", "200");
-    formulario.atualizarCampo("altura", "80");
-    formulario.atualizarCampo("largura", "120");
-    formulario.atualizarCampo("profundidade", "60");
+    formulario.atualizarCampo("emDestaque", true);
     formulario.adicionarCategoria("Mesas");
     formulario.adicionarImagens([
       new File(["foto"], "mesa.webp", { type: "image/webp" }),

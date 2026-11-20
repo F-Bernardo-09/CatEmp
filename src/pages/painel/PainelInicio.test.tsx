@@ -30,7 +30,7 @@ describe("PainelInicio", () => {
     });
     mocks.obterResumoPainel.mockResolvedValue({
       itensPublicados: 4,
-      itensOcultos: 2,
+      itensRascunho: 2,
       fotosCadastradas: 7,
     });
   });

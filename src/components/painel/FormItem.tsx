@@ -105,10 +105,8 @@ function FormItem() {
               titulo={dados.titulo}
               descricao={dados.descricao}
               preco={dados.preco}
-              altura={dados.altura}
-              largura={dados.largura}
-              profundidade={dados.profundidade}
               precoReposicao={dados.precoReposicao}
+              emDestaque={dados.emDestaque}
               onTipoChange={(tipo) => atualizarCampo("tipo", tipo)}
               onModalidadeChange={(modalidade) =>
                 atualizarCampo("modalidade", modalidade)
@@ -118,13 +116,11 @@ function FormItem() {
                 atualizarCampo("descricao", descricao)
               }
               onPrecoChange={(preco) => atualizarCampo("preco", preco)}
-              onAlturaChange={(altura) => atualizarCampo("altura", altura)}
-              onLarguraChange={(largura) => atualizarCampo("largura", largura)}
-              onProfundidadeChange={(profundidade) =>
-                atualizarCampo("profundidade", profundidade)
-              }
               onPrecoReposicaoChange={(precoReposicao) =>
                 atualizarCampo("precoReposicao", precoReposicao)
+              }
+              onDestaqueChange={(emDestaque) =>
+                atualizarCampo("emDestaque", emDestaque)
               }
             />
           )}

@@ -117,14 +117,14 @@ isOneToOne: false
                   ]
                 },"itens": {
                   Row: {
-                    "altura": number,"atualizado_em": string,"codigo_publico": string,"criado_em": string,"descricao": string,"em_destaque": boolean,"id": string,"largura": number,"loja_id": string,"modalidade": string,"preco_base": number,"preco_reposicao": number,"profundidade": number,"situacao": string,"tipo": string,"titulo": string
+                    "atualizado_em": string,"codigo_publico": string,"criado_em": string,"descricao": string,"em_destaque": boolean,"id": string,"loja_id": string,"modalidade": string,"preco_base": number,"preco_reposicao": number,"situacao": string,"tipo": string,"titulo": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "altura": number,"atualizado_em"?: string,"codigo_publico": string,"criado_em"?: string,"descricao": string,"em_destaque"?: boolean,"id"?: string,"largura": number,"loja_id": string,"modalidade": string,"preco_base": number,"preco_reposicao": number,"profundidade": number,"situacao"?: string,"tipo": string,"titulo": string
+                    "atualizado_em"?: string,"codigo_publico": string,"criado_em"?: string,"descricao": string,"em_destaque"?: boolean,"id"?: string,"loja_id": string,"modalidade": string,"preco_base": number,"preco_reposicao": number,"situacao"?: string,"tipo": string,"titulo": string
                   }
                   Update: {
-                    "altura"?: number,"atualizado_em"?: string,"codigo_publico"?: string,"criado_em"?: string,"descricao"?: string,"em_destaque"?: boolean,"id"?: string,"largura"?: number,"loja_id"?: string,"modalidade"?: string,"preco_base"?: number,"preco_reposicao"?: number,"profundidade"?: number,"situacao"?: string,"tipo"?: string,"titulo"?: string
+                    "atualizado_em"?: string,"codigo_publico"?: string,"criado_em"?: string,"descricao"?: string,"em_destaque"?: boolean,"id"?: string,"loja_id"?: string,"modalidade"?: string,"preco_base"?: number,"preco_reposicao"?: number,"situacao"?: string,"tipo"?: string,"titulo"?: string
                   }
                   Relationships: [
                     {

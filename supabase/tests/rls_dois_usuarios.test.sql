@@ -36,18 +36,18 @@ values
 
 insert into public.itens (
   id, loja_id, tipo, modalidade, titulo, descricao,
-  altura, largura, profundidade, preco_base, preco_reposicao, situacao
+  preco_base, preco_reposicao, situacao
 )
 values
   (
     'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa',
     'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-    'produto', 'aluguel', 'Item privado A', '', 1, 1, 1, 10, 10, 'oculto'
+    'produto', 'aluguel', 'Item privado A', 'Item de teste.', 10, 10, 'rascunho'
   ),
   (
     'bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb',
     'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-    'produto', 'aluguel', 'Item privado B', '', 1, 1, 1, 10, 10, 'oculto'
+    'produto', 'aluguel', 'Item privado B', 'Item de teste.', 10, 10, 'rascunho'
   );
 
 set local role authenticated;
@@ -59,7 +59,7 @@ select is(
   'Usuário A pode consultar o item privado da própria loja'
 );
 select throws_ok(
-  $$update public.itens set situacao = 'disponivel'
+  $$update public.itens set situacao = 'publicado'
     where id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa'$$,
   '23514',
   'O item precisa de uma foto principal para ser publicado.',
@@ -106,7 +106,7 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select throws_ok(
   $$update public.itens
-    set titulo = '   ', situacao = 'disponivel'
+    set titulo = '   ', situacao = 'publicado'
     where id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa'$$,
   '23514',
   'O item precisa de um título para ser publicado.',
@@ -114,7 +114,7 @@ select throws_ok(
 );
 select throws_ok(
   $$update public.itens
-    set preco_base = 0, situacao = 'disponivel'
+    set preco_base = 0, situacao = 'publicado'
     where id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa'$$,
   '23514',
   'O item precisa de um preço maior que zero para ser publicado.',
@@ -122,7 +122,7 @@ select throws_ok(
 );
 select is(
   (with publicacao as (
-    update public.itens set situacao = 'disponivel'
+    update public.itens set situacao = 'publicado'
     where id = 'aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa'
     returning 1
   )

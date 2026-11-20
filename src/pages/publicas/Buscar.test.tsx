@@ -43,13 +43,11 @@ const item = {
   loja_id: loja.id,
   loja_slug: loja.slug,
   loja_nome: loja.nome_comercial,
+  tipo: "produto",
   titulo: "Vaso Aurora",
   modalidade: "aluguel",
   descricao: "Vaso decorativo",
   preco_base: 20,
-  altura: 30,
-  largura: 20,
-  profundidade: 20,
   foto_url: undefined,
   em_destaque: false,
 };
@@ -144,6 +142,37 @@ describe("Buscar", () => {
     await waitFor(() => {
       expect(screen.getByRole("option", { name: "Vasos" })).toBeInTheDocument();
     });
+  });
+
+  it("mantém tags independentes ao trocar a modalidade", async () => {
+    mocks.listarCategoriasPublicasDaLoja.mockResolvedValue([
+      { id: "categoria-aluguel", nome: "Cortinas", slug: "cortinas" },
+    ]);
+
+    render(
+      <MemoryRouter
+        initialEntries={["/minha-loja/buscar?categoria=Cortinas"]}
+      >
+        <Routes>
+          <Route path="/:slug/buscar" element={<Buscar />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("option", { name: "Cortinas" })).toBeInTheDocument();
+    expect(mocks.listarCategoriasPublicasDaLoja).toHaveBeenCalledWith("loja-1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Venda" }));
+
+    await waitFor(() => {
+      expect(mocks.listarItensCatalogoDaLoja).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          modalidade: "venda",
+          categoria: "Cortinas",
+        }),
+      );
+    });
+    expect(screen.getByRole("option", { name: "Cortinas" })).toBeInTheDocument();
   });
 
   it("permite tentar novamente quando a loja falha ao carregar", async () => {

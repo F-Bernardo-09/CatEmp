@@ -9,7 +9,7 @@ import { obterResumoPainel } from "../../services/resumoPainel";
 
 const RESUMO_VAZIO: ResumoPainelDados = {
   itensPublicados: 0,
-  itensOcultos: 0,
+  itensRascunho: 0,
   fotosCadastradas: 0,
 };
 
@@ -196,12 +196,12 @@ function PainelInicio() {
             </article>
 
             <article className="rounded-card border border-border bg-white p-5">
-              <h3 className="text-sm text-text-secondary">Itens ocultos</h3>
+              <h3 className="text-sm text-text-secondary">Rascunhos</h3>
 
               <p className="mt-3 text-3xl font-bold text-text" aria-live="polite">
                 {mostrandoResumo || !dadosResumo
                   ? "--"
-                  : dadosResumo.itensOcultos}
+                  : dadosResumo.itensRascunho}
               </p>
             </article>
 

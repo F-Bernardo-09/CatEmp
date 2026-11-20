@@ -121,6 +121,7 @@ function LojaHome() {
       lojaNome: loja.nome_comercial,
       lojaWhatsapp: loja.whatsapp,
       titulo: item.titulo,
+      tipo: item.tipo,
       modalidade: item.modalidade,
       precoBase: item.preco_base,
       precoReposicao: Number(data.preco_reposicao),
@@ -290,14 +291,12 @@ function LojaHome() {
                           </p>
                         </div>
 
-                        <p className="text-sm text-text-secondary">
-                          {item.altura} × {item.largura} × {item.profundidade} cm
-                        </p>
                       </div>
                     </Link>
 
                     <div className="flex items-center justify-between gap-3 p-4 pt-2">
                       <strong className="text-base font-semibold text-text">
+                        {item.tipo === "servico" && "A partir de "}
                         {formatarPreco(item.preco_base)}
                       </strong>
                       <button

@@ -22,10 +22,8 @@ export interface DadosFormulario {
   titulo: string;
   descricao: string;
   preco: string;
-  altura: string;
-  largura: string;
-  profundidade: string;
   precoReposicao: string;
+  emDestaque: boolean;
   imagens: ImagemItem[];
   categorias: string[];
   adicionais: AdicionalServico[];

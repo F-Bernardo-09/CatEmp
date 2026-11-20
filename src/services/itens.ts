@@ -8,9 +8,7 @@ export interface DadosNovoItem {
   descricao: string;
   preco_base: number;
   preco_reposicao: number;
-  altura: number;
-  largura: number;
-  profundidade: number;
+  em_destaque: boolean;
 }
 
 export interface DadosAtualizacaoItem {
@@ -20,9 +18,6 @@ export interface DadosAtualizacaoItem {
   descricao?: string;
   preco_base?: number;
   preco_reposicao?: number;
-  altura?: number;
-  largura?: number;
-  profundidade?: number;
   situacao?: ItemSituacao;
   em_destaque?: boolean;
 }
@@ -61,7 +56,7 @@ export async function listarItensDaLoja(
 
   let query = supabase
     .from("itens")
-    .select("id, titulo, modalidade, situacao, preco_base, atualizado_em")
+    .select("id, titulo, tipo, modalidade, situacao, preco_base, atualizado_em")
     .eq("loja_id", lojaId);
 
   if (filtros.modalidade) {
@@ -109,6 +104,7 @@ export async function listarItensDaLoja(
   return itens.map((item) => ({
     id: item.id,
     titulo: item.titulo,
+    tipo: item.tipo,
     modalidade: item.modalidade,
     situacao: item.situacao,
     preco_base: Number(item.preco_base),
@@ -133,16 +129,13 @@ export async function alterarSituacaoItem(
 }
 
 const COLUNAS_ITEM =
-  "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, altura, largura, profundidade, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em";
+  "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em";
 
 function paraItemBase(linha: any): ItemBase {
   return {
     ...linha,
     preco_base: Number(linha.preco_base),
     preco_reposicao: Number(linha.preco_reposicao),
-    altura: Number(linha.altura),
-    largura: Number(linha.largura),
-    profundidade: Number(linha.profundidade),
   };
 }
 

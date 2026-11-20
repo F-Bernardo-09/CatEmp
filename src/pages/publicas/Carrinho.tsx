@@ -133,6 +133,11 @@ function Carrinho() {
                       {item.modalidade === "aluguel" ? "Aluguel" : "Venda"}
                     </p>
                     <p className="mt-2 font-semibold">
+                      {item.tipo === "servico"
+                        ? "Preço mínimo: "
+                        : item.tipo === "produto"
+                          ? "Preço fixo: "
+                          : "Valor base: "}
                       {formatarPreco(item.precoBase)}
                     </p>
                   </div>
@@ -169,7 +174,11 @@ function Carrinho() {
 
             <aside className="flex flex-col gap-4 rounded-card border border-border bg-card p-5">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">Total estimado</span>
+                <span className="font-semibold">
+                  {itens.some((item) => item.tipo === "servico")
+                    ? "Total mínimo estimado"
+                    : "Total estimado"}
+                </span>
                 <strong className="text-xl">{formatarPreco(total)}</strong>
               </div>
 

@@ -33,6 +33,9 @@ export function lerCarrinhoDaUrl(
         typeof registro.lojaNome === "string" &&
         typeof registro.lojaWhatsapp === "string" &&
         typeof registro.titulo === "string" &&
+        (registro.tipo === undefined ||
+          registro.tipo === "produto" ||
+          registro.tipo === "servico") &&
         (registro.modalidade === "aluguel" ||
           registro.modalidade === "venda") &&
         typeof registro.precoBase === "number" &&

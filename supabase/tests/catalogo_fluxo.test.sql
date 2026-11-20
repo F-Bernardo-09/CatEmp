@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(19);
 
 insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -55,7 +55,7 @@ values ('cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'Floral');
 
 insert into public.itens (
   id, loja_id, tipo, modalidade, titulo, descricao,
-  altura, largura, profundidade, preco_base, preco_reposicao
+  preco_base, preco_reposicao
 )
 values (
   'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
@@ -64,9 +64,6 @@ values (
   'aluguel',
   'Cortina floral',
   'Cortina para decoração de eventos.',
-  2,
-  1.5,
-  0.1,
   80,
   250
 );
@@ -80,8 +77,8 @@ select ok(
 select is(
   (select situacao from public.itens
     where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'),
-  'oculto',
-  'O item começa oculto até ser publicado'
+  'rascunho',
+  'O item começa como rascunho'
 );
 
 select is(
@@ -184,7 +181,6 @@ select is(
 
 update public.itens
 set titulo = 'Cortina floral atualizada',
-    altura = 2.2,
     preco_base = 95,
     preco_reposicao = 300
 where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
@@ -193,7 +189,6 @@ select is(
   (
     select jsonb_build_object(
       'titulo', titulo,
-      'altura', altura,
       'preco_base', preco_base,
       'preco_reposicao', preco_reposicao
     )
@@ -202,7 +197,6 @@ select is(
   ),
   jsonb_build_object(
     'titulo', 'Cortina floral atualizada',
-    'altura', 2.2,
     'preco_base', 95,
     'preco_reposicao', 300
   ),
@@ -267,7 +261,7 @@ select is(
 
 insert into public.itens (
   id, loja_id, tipo, modalidade, titulo, descricao,
-  altura, largura, profundidade, preco_base, preco_reposicao
+  preco_base, preco_reposicao
 )
 values (
   'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
@@ -276,9 +270,6 @@ values (
   'venda',
   'Colcha',
   'Colcha para cama.',
-  2,
-  2,
-  0.1,
   150,
   150
 );
@@ -301,7 +292,16 @@ select throws_ok(
 
 select throws_ok(
   $$update public.itens
-    set titulo = '   ', situacao = 'disponivel'
+    set descricao = E' \t\n', situacao = 'publicado'
+    where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'$$,
+  '23514',
+  'O item precisa de uma descrição para ser publicado.',
+  'Uma descrição vazia impede a publicação'
+);
+
+select throws_ok(
+  $$update public.itens
+    set titulo = '   ', situacao = 'publicado'
     where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'$$,
   '23514',
   'O item precisa de um título para ser publicado.',
@@ -320,7 +320,7 @@ select is(
 
 update public.itens
 set titulo = 'Cortina floral atualizada',
-    situacao = 'disponivel'
+    situacao = 'publicado'
 where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
 select is(
@@ -339,7 +339,7 @@ select is(
     from public.itens
     where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'
   ),
-  'disponivel',
+  'publicado',
   'O item é publicado após a correção da falha'
 );
 
@@ -347,6 +347,18 @@ select is(
   (select count(*)::integer from storage.buckets where id = 'fotos'),
   1,
   'O bucket de fotos existe no ambiente integrado'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'itens'
+      and column_name in ('altura', 'largura', 'profundidade')
+  ),
+  0,
+  'O cadastro de itens não possui colunas de medidas'
 );
 
 select * from finish();
