@@ -41,26 +41,29 @@ export async function listarItensCatalogoDaLoja(
 
   // Se filtrado por categoria:
   if (filtros.categoria) {
-    const { data: catData } = await supabase
+    const { data: catData, error: erroCategoria } = await supabase
       .from("categorias")
       .select("id")
       .eq("loja_id", filtros.lojaId)
       .eq("nome", filtros.categoria)
       .maybeSingle();
 
-    if (catData) {
-      const { data: itemCats } = await supabase
-        .from("item_categorias")
-        .select("item_id")
-        .eq("loja_id", filtros.lojaId)
-        .eq("categoria_id", catData.id);
+    if (erroCategoria) throw erroCategoria;
+    if (!catData) return { itens: [], temMais: false };
 
-      const idsComCategoria = (itemCats ?? []).map((ic) => ic.item_id);
-      if (idsComCategoria.length === 0) {
-        return { itens: [], temMais: false };
-      }
-      query = query.in("id", idsComCategoria);
+    const { data: itemCats, error: erroItensCategoria } = await supabase
+      .from("item_categorias")
+      .select("item_id")
+      .eq("loja_id", filtros.lojaId)
+      .eq("categoria_id", catData.id);
+
+    if (erroItensCategoria) throw erroItensCategoria;
+
+    const idsComCategoria = (itemCats ?? []).map((ic) => ic.item_id);
+    if (idsComCategoria.length === 0) {
+      return { itens: [], temMais: false };
     }
+    query = query.in("id", idsComCategoria);
   }
 
   const { data, error, count } = await query

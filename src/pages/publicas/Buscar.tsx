@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 
 import CabecalhoLoja from "../../components/layout/CabecalhoLoja";
@@ -29,6 +29,13 @@ function Buscar() {
   const [pagina, setPagina] = useState(1);
   const [categorias, setCategorias] = useState<{ id: string; nome: string; slug: string }[]>([]);
   const [naoEncontrada, setNaoEncontrada] = useState(false);
+  const [erroLoja, setErroLoja] = useState("");
+  const [erroCategorias, setErroCategorias] = useState("");
+  const [erroItens, setErroItens] = useState("");
+  const [paginaComErro, setPaginaComErro] = useState<number | null>(null);
+  const [tentativaLoja, setTentativaLoja] = useState(0);
+  const [tentativaCategorias, setTentativaCategorias] = useState(0);
+  const requisicaoItens = useRef(0);
 
   const modalidade =
     searchParams.get("modalidade") === "venda"
@@ -40,38 +47,85 @@ function Buscar() {
   const busca = searchParams.get("q") ?? "";
 
   useEffect(() => {
-    if (!slug) return;
+    let ativa = true;
+    setLoja(null);
+    setNaoEncontrada(false);
+    setErroLoja("");
+    setCategorias([]);
+    setItens([]);
 
+    if (!slug) {
+      setNaoEncontrada(true);
+      return () => {
+        ativa = false;
+      };
+    }
+
+    const slugLoja = slug;
     async function carregarLoja() {
       try {
-        const lojaEncontrada = await buscarLojaPorSlug(slug!);
+        const lojaEncontrada = await buscarLojaPorSlug(slugLoja);
+        if (!ativa) return;
+
         if (!lojaEncontrada || lojaEncontrada.situacao !== "ativa") {
           setNaoEncontrada(true);
           return;
         }
         setLoja(lojaEncontrada);
       } catch (err) {
-        console.error(err);
-        setNaoEncontrada(true);
+        console.error("Erro ao carregar loja para busca:", err);
+        if (ativa) {
+          setErroLoja(
+            err instanceof Error
+              ? err.message
+              : "Não foi possível carregar a loja.",
+          );
+        }
       }
     }
 
     void carregarLoja();
-  }, [slug]);
+    return () => {
+      ativa = false;
+    };
+  }, [slug, tentativaLoja]);
 
   useEffect(() => {
     if (!loja) return;
 
+    let ativa = true;
+    setErroCategorias("");
     void listarCategoriasPublicasDaLoja(loja.id, modalidade)
-      .then(setCategorias)
-      .catch(console.error);
-  }, [loja, modalidade]);
+      .then((resultado) => {
+        if (ativa) setCategorias(resultado);
+      })
+      .catch((erro: unknown) => {
+        console.error("Erro ao carregar categorias da busca:", erro);
+        if (ativa) {
+          setCategorias([]);
+          setErroCategorias(
+            erro instanceof Error
+              ? erro.message
+              : "Não foi possível carregar as categorias.",
+          );
+        }
+      });
 
-  async function carregarItens(proximaPagina = 1) {
+    return () => {
+      ativa = false;
+    };
+  }, [loja, modalidade, tentativaCategorias]);
+
+  async function carregarItens(
+    proximaPagina = 1,
+    idRequisicao = requisicaoItens.current,
+  ) {
     if (!loja) return;
 
     if (proximaPagina === 1) {
       setCarregando(true);
+      setErroItens("");
+      setPaginaComErro(null);
     } else {
       setCarregandoMais(true);
     }
@@ -86,20 +140,42 @@ function Buscar() {
         limit: 12,
       });
 
+      if (idRequisicao !== requisicaoItens.current) return;
       setItens((atual) =>
         proximaPagina === 1 ? resposta.itens : [...atual, ...resposta.itens],
       );
       setTemMais(resposta.temMais);
+      setPagina(proximaPagina);
+      setErroItens("");
+      setPaginaComErro(null);
+    } catch (erro) {
+      console.error("Erro ao carregar itens da busca:", erro);
+      if (idRequisicao === requisicaoItens.current) {
+        setErroItens(
+          erro instanceof Error
+            ? erro.message
+            : "Não foi possível carregar os itens.",
+        );
+        setPaginaComErro(proximaPagina);
+      }
     } finally {
-      setCarregando(false);
-      setCarregandoMais(false);
+      if (idRequisicao === requisicaoItens.current) {
+        setCarregando(false);
+        setCarregandoMais(false);
+      }
     }
   }
 
   useEffect(() => {
     if (!loja) return;
+    const idRequisicao = ++requisicaoItens.current;
     setPagina(1);
-    void carregarItens(1);
+    setItens([]);
+    setTemMais(false);
+    setErroItens("");
+    setPaginaComErro(null);
+    setCarregando(true);
+    void carregarItens(1, idRequisicao);
   }, [loja, modalidade, categoria, busca]);
 
   function alterarFiltro(chave: "modalidade" | "categoria" | "q", valor: string) {
@@ -126,6 +202,29 @@ function Buscar() {
           <p className="mt-2 text-text-secondary">
             A loja que você está tentando acessar não existe ou está desativada.
           </p>
+        </main>
+        <Rodape />
+      </div>
+    );
+  }
+
+  if (erroLoja) {
+    return (
+      <div className="flex min-h-screen flex-col bg-page text-text">
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold text-text">
+            Não foi possível carregar a loja
+          </h1>
+          <p role="alert" className="mt-2 text-text-secondary">
+            {erroLoja}
+          </p>
+          <button
+            type="button"
+            onClick={() => setTentativaLoja((tentativa) => tentativa + 1)}
+            className="mt-4 rounded-button bg-primary px-6 py-3 text-sm font-semibold text-text-inverse"
+          >
+            Tentar novamente
+          </button>
         </main>
         <Rodape />
       </div>
@@ -217,9 +316,50 @@ function Buscar() {
           </div>
         </section>
 
+        {erroCategorias && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
+          >
+            <span>Não foi possível carregar as categorias: {erroCategorias}</span>
+            <button
+              type="button"
+              onClick={() =>
+                setTentativaCategorias((tentativa) => tentativa + 1)
+              }
+              className="font-semibold underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
+        {erroItens && (
+          <div
+            role="alert"
+            className="flex flex-wrap items-center justify-between gap-3 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+          >
+            <span>Não foi possível carregar os itens: {erroItens}</span>
+            <button
+              type="button"
+              onClick={() => {
+                if (loja) {
+                  void carregarItens(
+                    paginaComErro ?? 1,
+                    requisicaoItens.current,
+                  );
+                }
+              }}
+              className="font-semibold underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        )}
+
         {carregando ? (
           <p className="text-sm text-text-secondary">Carregando itens da loja...</p>
-        ) : itens.length === 0 ? (
+        ) : erroItens && itens.length === 0 ? null : itens.length === 0 ? (
           <div className="rounded-card border border-dashed border-border bg-card p-8 text-center text-sm text-text-secondary">
             Nenhum item encontrado nesta loja para os filtros atuais.
           </div>
@@ -261,14 +401,12 @@ function Buscar() {
               ))}
             </div>
 
-            {temMais && (
+            {temMais && !erroItens && (
               <div className="flex justify-center">
                 <button
                   type="button"
                   onClick={() => {
-                    const proximaPagina = pagina + 1;
-                    setPagina(proximaPagina);
-                    void carregarItens(proximaPagina);
+                    void carregarItens(pagina + 1, requisicaoItens.current);
                   }}
                   disabled={carregandoMais}
                   className="rounded-button border border-border bg-white px-6 py-3 text-sm font-semibold text-text transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
