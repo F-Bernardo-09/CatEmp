@@ -53,10 +53,8 @@ function useFormItem(itemId?: string) {
     titulo: "",
     descricao: "",
     preco: "",
-    altura: "",
-    largura: "",
-    profundidade: "",
     precoReposicao: "",
+    emDestaque: false,
     imagens: [],
     categorias: [],
     adicionais: [],
@@ -147,10 +145,8 @@ function useFormItem(itemId?: string) {
           titulo: item.titulo,
           descricao: item.descricao,
           preco: String(item.preco_base),
-          altura: String(item.altura),
-          largura: String(item.largura),
-          profundidade: String(item.profundidade),
           precoReposicao: String(item.preco_reposicao),
+          emDestaque: item.em_destaque,
           imagens: [], // fotos existentes não são recarregadas como File
           categorias: nomesCategoria,
           adicionais: adicionaisCarregados,
@@ -390,6 +386,10 @@ function useFormItem(itemId?: string) {
       setErroSalvar("Selecione o tipo e a modalidade do item.");
       return;
     }
+    if (!dados.descricao.trim()) {
+      setErroSalvar("Informe a descrição do item.");
+      return;
+    }
 
     setSalvando(true);
     setErroSalvar("");
@@ -401,12 +401,10 @@ function useFormItem(itemId?: string) {
         tipo: dados.tipo,
         modalidade: dados.modalidade,
         titulo: dados.titulo.trim(),
-        descricao: dados.descricao,
+        descricao: dados.descricao.trim(),
         preco_base: Number(dados.preco),
         preco_reposicao: Number(dados.precoReposicao),
-        altura: Number(dados.altura),
-        largura: Number(dados.largura),
-        profundidade: Number(dados.profundidade),
+        em_destaque: dados.emDestaque,
       };
 
       // 1) Item: edita se já existe (edição ou tentativa anterior), senão cria

@@ -23,7 +23,13 @@ export function montarMensagemPedido(itens: ItemCarrinho[]): string {
       `${indice + 1}. ${item.titulo}`,
       `   Modalidade: ${item.modalidade === "aluguel" ? "Aluguel" : "Venda"}`,
       `   Quantidade: ${item.quantidade}`,
-      `   Valor base: ${formatarPrecoWhatsapp(item.precoBase)}`,
+      `   ${
+        item.tipo === "servico"
+          ? "Preço mínimo"
+          : item.tipo === "produto"
+            ? "Preço fixo"
+            : "Valor base"
+      }: ${formatarPrecoWhatsapp(item.precoBase)}`,
       `   Valor de reposição: ${formatarPrecoWhatsapp(item.precoReposicao)}`,
       `   Link: ${window.location.origin}/loja/${item.lojaSlug}`,
       "",
@@ -36,7 +42,7 @@ export function montarMensagemPedido(itens: ItemCarrinho[]): string {
   );
 
   linhas.push(
-    `Total estimado: ${formatarPrecoWhatsapp(total)}`,
+    `${itens.some((item) => item.tipo === "servico") ? "Total mínimo estimado" : "Total estimado"}: ${formatarPrecoWhatsapp(total)}`,
     "",
     "Termos:",
     "- Sinal: 50% na confirmação e restante até 3 dias antes do evento.",

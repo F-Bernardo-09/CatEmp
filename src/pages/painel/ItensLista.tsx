@@ -17,9 +17,9 @@ const modalidades: Array<{ value: ItemModalidade | ""; label: string }> = [
 
 const situacoes: Array<{ value: ItemSituacao | ""; label: string }> = [
   { value: "", label: "Todos" },
-  { value: "disponivel", label: "Disponível" },
-  { value: "manutencao", label: "Em manutenção" },
-  { value: "oculto", label: "Oculto" },
+  { value: "rascunho", label: "Rascunho" },
+  { value: "publicado", label: "Publicado" },
+  { value: "arquivado", label: "Arquivado" },
 ];
 
 function formatarPreco(valor: number): string {
@@ -27,6 +27,10 @@ function formatarPreco(valor: number): string {
     style: "currency",
     currency: "BRL",
   }).format(valor);
+}
+
+function rotuloSituacao(situacao: ItemSituacao): string {
+  return situacoes.find((opcao) => opcao.value === situacao)?.label ?? situacao;
 }
 
 function ItensLista() {
@@ -66,12 +70,12 @@ function ItensLista() {
   }, [modalidade, situacao, busca]);
 
   async function publicar(itemId: string) {
-    await alterarSituacaoItem(itemId, "disponivel");
+    await alterarSituacaoItem(itemId, "publicado");
     await carregarItens();
   }
 
   async function arquivar(itemId: string) {
-    await alterarSituacaoItem(itemId, "oculto");
+    await alterarSituacaoItem(itemId, "arquivado");
     await carregarItens();
   }
 
@@ -186,11 +190,12 @@ function ItensLista() {
                       {item.modalidade}
                     </span>
                     <span className="rounded-full border border-border bg-white px-2 py-1 text-[10px] uppercase tracking-[0.08em] text-text-secondary">
-                      {item.situacao}
+                      {rotuloSituacao(item.situacao)}
                     </span>
                   </div>
 
                   <p className="mt-2 text-sm text-text-secondary">
+                    {item.tipo === "servico" ? "Preço mínimo: " : "Preço fixo: "}
                     {formatarPreco(item.preco_base)}
                   </p>
                 </div>
@@ -203,7 +208,7 @@ function ItensLista() {
                     Editar
                   </Link>
 
-                  {item.situacao !== "disponivel" && (
+                  {item.situacao !== "publicado" && (
                     <button
                       type="button"
                       onClick={() => void publicar(item.id)}
@@ -213,7 +218,7 @@ function ItensLista() {
                     </button>
                   )}
 
-                  {item.situacao === "disponivel" && (
+                  {item.situacao === "publicado" && (
                     <button
                       type="button"
                       onClick={() => void arquivar(item.id)}

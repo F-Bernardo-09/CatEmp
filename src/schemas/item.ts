@@ -1,6 +1,6 @@
 export type ItemTipo = "produto" | "servico";
 export type ItemModalidade = "aluguel" | "venda";
-export type ItemSituacao = "disponivel" | "manutencao" | "oculto";
+export type ItemSituacao = "rascunho" | "publicado" | "arquivado";
 
 export interface ItemBase {
   id: string;
@@ -10,9 +10,6 @@ export interface ItemBase {
   modalidade: ItemModalidade;
   titulo: string;
   descricao: string;
-  altura: number;
-  largura: number;
-  profundidade: number;
   preco_base: number;
   preco_reposicao: number;
   situacao: ItemSituacao;
@@ -24,6 +21,7 @@ export interface ItemBase {
 export interface ItemListaResumo {
   id: string;
   titulo: string;
+  tipo: ItemTipo;
   modalidade: ItemModalidade;
   situacao: ItemSituacao;
   preco_base: number;
@@ -37,13 +35,11 @@ export interface ItemCatalogoResumo {
   loja_id: string;
   loja_slug: string;
   loja_nome: string;
+  tipo: ItemTipo;
   titulo: string;
   modalidade: ItemModalidade;
   descricao: string;
   preco_base: number;
-  altura: number;
-  largura: number;
-  profundidade: number;
   foto_url?: string;
   em_destaque: boolean;
 }

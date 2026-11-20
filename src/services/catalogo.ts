@@ -21,11 +21,11 @@ export async function listarItensCatalogoDaLoja(
   let query = supabase
     .from("itens")
     .select(
-      "id, codigo_publico, loja_id, titulo, modalidade, descricao, preco_base, altura, largura, profundidade, em_destaque, situacao",
+      "id, codigo_publico, loja_id, tipo, titulo, modalidade, descricao, preco_base, em_destaque, situacao",
       { count: "exact" },
     )
     .eq("loja_id", filtros.lojaId)
-    .eq("situacao", "disponivel");
+    .eq("situacao", "publicado");
 
   if (filtros.modalidade) {
     query = query.eq("modalidade", filtros.modalidade);
@@ -41,26 +41,36 @@ export async function listarItensCatalogoDaLoja(
 
   // Se filtrado por categoria:
   if (filtros.categoria) {
-    const { data: catData } = await supabase
+    const { data: categorias, error: erroCategoria } = await supabase
       .from("categorias")
       .select("id")
       .eq("loja_id", filtros.lojaId)
-      .eq("nome", filtros.categoria)
-      .maybeSingle();
+      .eq("situacao", "ativa")
+      .eq("nome", filtros.categoria);
 
-    if (catData) {
-      const { data: itemCats } = await supabase
-        .from("item_categorias")
-        .select("item_id")
-        .eq("loja_id", filtros.lojaId)
-        .eq("categoria_id", catData.id);
-
-      const idsComCategoria = (itemCats ?? []).map((ic) => ic.item_id);
-      if (idsComCategoria.length === 0) {
-        return { itens: [], temMais: false };
-      }
-      query = query.in("id", idsComCategoria);
+    if (erroCategoria) throw erroCategoria;
+    if (!categorias || categorias.length === 0) {
+      return { itens: [], temMais: false };
     }
+
+    const { data: itemCats, error: erroItensCategoria } = await supabase
+      .from("item_categorias")
+      .select("item_id")
+      .eq("loja_id", filtros.lojaId)
+      .in(
+        "categoria_id",
+        categorias.map((categoria) => categoria.id),
+      );
+
+    if (erroItensCategoria) throw erroItensCategoria;
+
+    const idsComCategoria = [
+      ...new Set((itemCats ?? []).map((ic) => ic.item_id)),
+    ];
+    if (idsComCategoria.length === 0) {
+      return { itens: [], temMais: false };
+    }
+    query = query.in("id", idsComCategoria);
   }
 
   const { data, error, count } = await query
@@ -110,13 +120,11 @@ export async function listarItensCatalogoDaLoja(
       loja_id: item.loja_id,
       loja_slug: loja?.slug ?? "",
       loja_nome: loja?.nome_comercial ?? "Loja",
+      tipo: item.tipo,
       titulo: item.titulo,
       modalidade: item.modalidade,
       descricao: item.descricao,
       preco_base: Number(item.preco_base),
-      altura: Number(item.altura),
-      largura: Number(item.largura),
-      profundidade: Number(item.profundidade),
       foto_url: fotosPorItem.get(item.id),
       em_destaque: Boolean(item.em_destaque),
     };
@@ -131,23 +139,22 @@ export async function listarItensCatalogoDaLoja(
 
 export async function listarCategoriasPublicasDaLoja(
   lojaId: string,
-  modalidade?: "aluguel" | "venda",
 ): Promise<{ id: string; nome: string; slug: string }[]> {
-  let query = supabase
+  const { data, error } = await supabase
     .from("categorias")
     .select("id, nome, slug")
     .eq("loja_id", lojaId)
     .eq("situacao", "ativa")
     .order("nome");
 
-  if (modalidade) {
-    query = query.eq("modalidade", modalidade);
-  }
-
-  const { data, error } = await query;
-
   if (error) throw error;
-  return data ?? [];
+
+  const nomes = new Set<string>();
+  return (data ?? []).filter((categoria) => {
+    if (nomes.has(categoria.nome)) return false;
+    nomes.add(categoria.nome);
+    return true;
+  });
 }
 
 export async function buscarItemPublicoPorCodigoOuId(
@@ -157,9 +164,9 @@ export async function buscarItemPublicoPorCodigoOuId(
   let query = supabase
     .from("itens")
     .select(
-      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, altura, largura, profundidade, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em",
+      "id, loja_id, codigo_publico, tipo, modalidade, titulo, descricao, preco_base, preco_reposicao, situacao, em_destaque, criado_em, atualizado_em",
     )
-    .eq("situacao", "disponivel");
+    .eq("situacao", "publicado");
 
   if (codigoOuId.length === 5 || codigoOuId.length === 8) {
     query = query.eq("codigo_publico", codigoOuId);
@@ -229,9 +236,6 @@ export async function buscarItemPublicoPorCodigoOuId(
     modalidade: item.modalidade,
     titulo: item.titulo,
     descricao: item.descricao,
-    altura: Number(item.altura),
-    largura: Number(item.largura),
-    profundidade: Number(item.profundidade),
     preco_base: Number(item.preco_base),
     preco_reposicao: Number(item.preco_reposicao),
     situacao: item.situacao,

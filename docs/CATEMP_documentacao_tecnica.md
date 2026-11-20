@@ -54,7 +54,7 @@ O token **não é uma senha**: é um código de uso único que apenas libera a c
 - Cadastro de vendedoras exige token de uso único.
 - Cada foto pertence a exatamente um tema; escolher a foto é escolher a variação visual.
 - Imagens ficam no Supabase Storage; o banco guarda os caminhos no bucket.
-- Sem limites de fotos, tamanho de arquivo ou destaques por enquanto.
+- Itens podem ser marcados como destaque; o carrossel organiza os destaques automaticamente, sem ordem manual.
 
 ## 3. Tecnologias e arquitetura
 
@@ -81,7 +81,7 @@ O princípio fundamental: **toda rota pública pertence a uma loja**. O slug da 
 | Rota | Descrição |
 |---|---|
 | `/:slug` | Vitrine da loja: banner, perfil, carrossel de destaques e catálogo da vendedora. |
-| `/:slug/buscar` | Busca e filtros **dentro da loja**: modalidade, categoria e texto. |
+| `/:slug/buscar` | Busca e filtros **dentro da loja**: modalidade, tags e texto. |
 | `/:slug/item/:codigo` | Detalhe do item: fotos, seletor de tema, preço, extras, adicionar ao carrinho. O parâmetro é o `codigo_publico`, não o UUID. |
 | `/:slug/carrinho` | Carrinho da loja: revisar itens, data prevista, observações e enviar pelo WhatsApp. Aceita `?c=`. |
 
@@ -157,7 +157,8 @@ catemp/
 │   │   ├── 0011_rls_politicas.sql
 │   │   ├── 0012_storage_fotos.sql
 │   │   ├── 0013_validacao_publicacao.sql
-│   │   └── 0014_admin_seed.sql
+│   │   ├── 0014_admin_seed.sql
+│   │   └── 0015_regras_itens.sql
 │   ├── functions/
 │   │   ├── _shared/
 │   │   │   ├── cors.ts
@@ -353,7 +354,7 @@ Constraints: `expira_em > criado_em`; `usado_em` e `revogado_em` não podem ambo
 
 ### 6.5 `itens`
 
-Produtos e serviços no mesmo cadastro, diferenciados por `tipo`.
+Produtos e serviços no mesmo cadastro, diferenciados por `tipo`; todo item também tem uma `modalidade` independente (`aluguel` ou `venda`).
 
 | Coluna | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -363,20 +364,19 @@ Produtos e serviços no mesmo cadastro, diferenciados por `tipo`.
 | `tipo` | varchar(10) | ✅ | `produto` ou `servico`. |
 | `modalidade` | varchar(7) | ✅ | `aluguel` ou `venda`. |
 | `titulo` | varchar(120) | ✅ | Nome do item. |
-| `descricao` | text | ✅ | Descrição completa. |
-| `altura` | numeric(8,2) | ✅ | Deve ser > 0. |
-| `largura` | numeric(8,2) | ✅ | Deve ser > 0. |
-| `profundidade` | numeric(8,2) | ✅ | Deve ser > 0. |
+| `descricao` | text | ✅ | Descrição não vazia; detalhes de estilo, material, uso e outras características ficam em texto livre. |
 | `preco_base` | numeric(10,2) | ✅ | ≥ 0. Preço fixo no produto; preço mínimo no serviço. |
 | `preco_reposicao` | numeric(10,2) | ✅ | ≥ 0. Valor de reposição (relevante para aluguel). |
-| `situacao` | varchar(15) | ✅ | `disponivel`, `manutencao` ou `oculto` (padrão `oculto`). |
-| `em_destaque` | boolean | ✅ | Padrão `false`. Aparece no carrossel da loja. |
+| `situacao` | varchar(10) | ✅ | `rascunho`, `publicado` ou `arquivado` (padrão `rascunho`). |
+| `em_destaque` | boolean | ✅ | A vendedora escolhe se o item fica em destaque; o carrossel ordena automaticamente pela data de criação, sem posição configurável. |
 | `criado_em` | timestamptz | ✅ | |
 | `atualizado_em` | timestamptz | ✅ | Trigger automático. |
 
-Validação de publicação (trigger `0013`): para mudar para `disponivel`, o item precisa de título não-vazio, `preco_base > 0` e ao menos uma foto `principal`.
+Validação de publicação (trigger `0015`): para mudar para `publicado`, o item precisa de título e descrição não vazios, `preco_base > 0` e ao menos uma foto `principal`.
 
-Só itens `disponivel` de lojas `ativa` aparecem no catálogo público.
+Só itens `publicado` de lojas `ativa` aparecem no catálogo público. Em produtos, `preco_base` é um valor fixo; em serviços e seus adicionais, é um valor mínimo.
+
+A migração `0015` converte as situações antigas (`disponivel` para `publicado`, `oculto` para `rascunho` e `manutencao` para `arquivado`). Antes de remover as colunas de medidas, inclui os valores existentes na descrição do item.
 
 ### 6.6 `categorias`
 
@@ -391,7 +391,7 @@ Categorias criadas e reutilizadas por cada loja.
 | `slug` | varchar(60) | ✅ | UNIQUE por `(loja_id, modalidade, slug)`. |
 | `situacao` | varchar(10) | ✅ | `ativa` ou `inativa` (padrão `ativa`). |
 
-As categorias pertencem à loja. A busca dentro da loja filtra pelas categorias **daquela loja**.
+As categorias pertencem à loja. A busca dentro da loja apresenta as tags de todas as modalidades e permite filtrar tags e modalidade em controles separados; quando ambos são selecionados, os filtros são combinados. No cadastro, cada categoria continua vinculada à modalidade do item.
 
 ### 6.7 `item_categorias`
 
@@ -443,7 +443,7 @@ Adicionais de um serviço (ex.: "iluminação", "toalha de mesa").
 | `item_id` | uuid | ✅ | FK composta `(item_id, loja_id)` → itens. `ON DELETE CASCADE`. |
 | `loja_id` | uuid | ✅ | |
 | `nome` | varchar(120) | ✅ | |
-| `preco_minimo` | numeric(10,2) | ✅ | ≥ 0. |
+| `preco_minimo` | numeric(10,2) | ✅ | ≥ 0. Valor mínimo do adicional. |
 | `caminho_storage` | text | ✅ | Imagem do adicional no bucket. |
 | `criado_em` | timestamptz | ✅ | |
 | `atualizado_em` | timestamptz | ✅ | Trigger automático. |
@@ -465,6 +465,7 @@ Trigger `0013` valida que o `item_id` referenciado tem `tipo = 'servico'`.
 - Sem categorias ou temas duplicados na loja: restrições `UNIQUE`.
 - Preços e valores adicionais não negativos: `CHECK`.
 - Códigos públicos únicos globalmente: `UNIQUE` + geração no banco com nova tentativa em caso de colisão.
+- Uma loja recém-cadastrada não recebe categorias predefinidas; cada vendedora cria as próprias tags.
 - Excluir item remove fotos e extras em cascata. Excluir a foto remove o arquivo do Storage.
 
 ### 6.13 Códigos públicos
@@ -479,7 +480,7 @@ Servem para a URL do carrinho e rota de detalhe não carregarem UUIDs.
 
 RLS ativado em **todas** as tabelas. Sem política, ninguém acessa.
 
-- **Visitante (anon):** lê `lojas` com `situacao = 'ativa'`; `itens` com `situacao = 'disponivel'` de loja ativa; e `fotos`, `extras_servico`, `item_categorias`, `categorias` e `temas` relacionados a itens disponíveis de lojas ativas.
+- **Visitante (anon):** lê `lojas` com `situacao = 'ativa'`; `itens` com `situacao = 'publicado'` de loja ativa; e `fotos`, `extras_servico`, `item_categorias`, `categorias` e `temas` relacionados a itens publicados de lojas ativas.
 - **Vendedora autenticada:** lê e escreve apenas linhas cujo `loja_id` seja o da própria loja. Em `lojas`, altera só a própria, sem mexer em `situacao`. Não altera o próprio `papel`.
 - **Administrador:** lê `tokens_acesso` (apenas metadados, sem hash).
 - **Ninguém no navegador:** escreve em `tokens_acesso` ou altera `usuarios.papel`.
@@ -605,8 +606,8 @@ Criar o usuário no painel do Supabase (Authentication) e inserir manualmente a 
 
 As funções de leitura pública **sempre recebem `loja_id` ou `slug` como parâmetro obrigatório**. Nunca buscam itens de todas as lojas.
 
-- `listarItensCatalogo(lojaId, filtros)` — lista itens `disponivel` **da loja informada**, com filtros de modalidade, categoria e texto.
-- `listarCategoriasPublicas(lojaId, modalidade)` — lista categorias ativas **da loja informada**.
+- `listarItensCatalogo(lojaId, filtros)` — lista itens `publicado` **da loja informada**, com filtros independentes de modalidade, tag e texto.
+- `listarCategoriasPublicas(lojaId)` — lista tags ativas **da loja informada**, sem filtrar por modalidade.
 - `buscarItemPublico(codigo)` — busca um item pelo `codigo_publico`. Valida que a loja está ativa.
 
 ### 11.2 Gestão da vendedora (`itens.ts`, `categorias.ts`, `temas.ts`, `fotos.ts`, `extras.ts`)
@@ -669,7 +670,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - Usuário sem papel de admin não gera token, inclusive chamando a função diretamente.
 - Token é aceito uma única vez, mesmo com dois cadastros simultâneos.
 - Cadastro público do Auth está desativado.
-- Itens `oculto`/`manutencao` e lojas inativas não aparecem publicamente.
+- Itens `rascunho`/`arquivado` e lojas inativas não aparecem publicamente.
 - A rota `/:slug/buscar` só mostra itens da loja do slug.
 - A rota `/:slug/item/:codigo` só mostra itens que pertençam àquela loja.
 - Carrinho pertence a uma única loja; itens de outra loja são rejeitados.

@@ -39,6 +39,9 @@ function itemValido(item: unknown): item is ItemCarrinho {
     typeof valor.lojaNome === "string" &&
     typeof valor.lojaWhatsapp === "string" &&
     typeof valor.titulo === "string" &&
+    (valor.tipo === undefined ||
+      valor.tipo === "produto" ||
+      valor.tipo === "servico") &&
     (valor.modalidade === "aluguel" || valor.modalidade === "venda") &&
     typeof valor.precoBase === "number" &&
     typeof valor.precoReposicao === "number" &&

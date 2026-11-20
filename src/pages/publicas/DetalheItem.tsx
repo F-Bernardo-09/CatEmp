@@ -184,9 +184,15 @@ function DetalheItem() {
                 )}
               </div>
               <h1 className="mt-2 text-3xl font-bold text-text">{item?.titulo}</h1>
-              <p className="mt-1 text-2xl font-bold text-primary">
-                {item ? formatarPreco(item.preco_base) : ""}
-              </p>
+              {item && (
+                <p className="mt-1 text-2xl font-bold text-primary">
+                  <span className="block text-sm font-medium">
+                    {item.tipo === "servico" ? "Preço mínimo" : "Preço fixo"}
+                  </span>
+                  {item.tipo === "servico" && "A partir de "}
+                  {formatarPreco(item.preco_base)}
+                </p>
+              )}
             </div>
 
             {item?.descricao && (
@@ -195,29 +201,10 @@ function DetalheItem() {
               </p>
             )}
 
-            {/* Dimensões */}
-            <div className="rounded-card border border-border bg-card p-4">
-              <h2 className="mb-3 text-sm font-semibold text-text">Dimensões</h2>
-              <dl className="grid grid-cols-3 gap-3 text-center text-sm">
-                <div>
-                  <dt className="text-text-secondary">Altura</dt>
-                  <dd className="mt-1 font-medium text-text">{item?.altura} cm</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Largura</dt>
-                  <dd className="mt-1 font-medium text-text">{item?.largura} cm</dd>
-                </div>
-                <div>
-                  <dt className="text-text-secondary">Profund.</dt>
-                  <dd className="mt-1 font-medium text-text">{item?.profundidade} cm</dd>
-                </div>
-              </dl>
-            </div>
-
             {/* Categorias */}
             {item && item.categorias.length > 0 && (
               <div>
-                <h2 className="mb-2 text-sm font-semibold text-text">Categorias</h2>
+                <h2 className="mb-2 text-sm font-semibold text-text">Tags</h2>
                 <div className="flex flex-wrap gap-2">
                   {item.categorias.map((cat) => (
                     <span

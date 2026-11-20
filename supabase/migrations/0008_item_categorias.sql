@@ -1,6 +1,7 @@
 -- Relação entre itens e categorias da mesma loja e modalidade.
 
 alter table public.categorias
+  drop constraint categorias_loja_slug_unique,
   add column modalidade varchar(7) not null,
   add constraint categorias_modalidade_check
     check (modalidade in ('aluguel', 'venda')),
