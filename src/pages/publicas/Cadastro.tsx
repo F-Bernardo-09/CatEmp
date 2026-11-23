@@ -63,7 +63,20 @@ function Cadastro() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        if ("context" in error && error.context instanceof Response) {
+          try {
+            const corpo = await error.context.json();
+            if (corpo && typeof corpo.erro === "string") {
+              setErro(corpo.erro);
+              return;
+            }
+          } catch {
+            // fallback para throw error
+          }
+        }
+        throw error;
+      }
       navegar("/entrar", { replace: true });
     } catch (erroCadastro) {
       console.error("Erro ao cadastrar loja:", erroCadastro);

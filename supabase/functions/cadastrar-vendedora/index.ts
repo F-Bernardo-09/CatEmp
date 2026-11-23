@@ -134,10 +134,19 @@ Deno.serve(async (requisicao) => {
     }
 
     const usuarioId = usuarioCriado.user.id;
+    let usuarioInserido = false;
     let tokenConsumido = false;
     let lojaId: string | null = null;
 
     try {
+      const { error: erroPerfil } = await supabase.from("usuarios").insert({
+        id: usuarioId,
+        nome,
+        papel: "vendedor",
+      });
+      if (erroPerfil) throw erroPerfil;
+      usuarioInserido = true;
+
       const { data: tokenAtualizado, error: erroConsumirToken } = await supabase
         .from("tokens_acesso")
         .update({ usado_em: new Date().toISOString(), usado_por: usuarioId })
@@ -150,6 +159,7 @@ Deno.serve(async (requisicao) => {
 
       if (erroConsumirToken) throw erroConsumirToken;
       if (!tokenAtualizado) {
+        await supabase.from("usuarios").delete().eq("id", usuarioId);
         const { error } = await supabase.auth.admin.deleteUser(usuarioId);
         if (error) {
           console.error("Não foi possível remover conta após conflito de token:", error);
@@ -158,13 +168,6 @@ Deno.serve(async (requisicao) => {
         return responder(409, { erro: "Este token já foi utilizado." });
       }
       tokenConsumido = true;
-
-      const { error: erroPerfil } = await supabase.from("usuarios").insert({
-        id: usuarioId,
-        nome,
-        papel: "vendedor",
-      });
-      if (erroPerfil) throw erroPerfil;
 
       let slug = slugBase;
       const { data: slugExistente, error: erroSlug } = await supabase
@@ -213,6 +216,16 @@ Deno.serve(async (requisicao) => {
           .delete()
           .eq("id", lojaId);
         if (error) errosRollback.push(`Loja: ${erroTexto(error)}`);
+      }
+
+      if (usuarioInserido) {
+        const { error: erroExcluirPerfil } = await supabase
+          .from("usuarios")
+          .delete()
+          .eq("id", usuarioId);
+        if (erroExcluirPerfil) {
+          errosRollback.push(`Perfil: ${erroTexto(erroExcluirPerfil)}`);
+        }
       }
 
       const { error: erroExcluirUsuario } =

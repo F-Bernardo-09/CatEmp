@@ -131,6 +131,7 @@ function useFormItem(itemId?: string) {
               nome: extra.nome,
               precoMinimo: String(extra.preco_minimo),
               imagem: null, // arquivos originais não são re-carregáveis
+              novo: false,
             }));
           } catch (erroExtras) {
             console.warn("Não foi possível carregar os adicionais:", erroExtras);
@@ -336,6 +337,7 @@ function useFormItem(itemId?: string) {
           nome: "",
           precoMinimo: "",
           imagem: null,
+          novo: true,
         },
       ],
     }));
@@ -452,11 +454,23 @@ function useFormItem(itemId?: string) {
         progresso.categoriasVinculadas = true;
       }
 
-      // 4) Adicionais novos (só serviço; os já salvos não têm File)
+      // 4) Adicionais novos (só serviço; os já salvos não têm File e têm novo=false)
       if (dados.tipo === "servico") {
-        const adicionaisNovos = dados.adicionais.filter(
-          (a) => a.imagem !== null,
-        );
+        // Em modo edição, adicionais com novo=false já existem no banco — ignorar.
+        // Em modo criação, todos os adicionais são novos.
+        const adicionaisNovos = dados.adicionais.filter((a) => a.novo);
+
+        // Validar: todo adicional novo precisa de imagem (o campo é required, mas o
+        // componente de upload não é um <input> nativo — validamos aqui explicitamente)
+        const semImagem = adicionaisNovos.filter((a) => a.imagem === null);
+        if (semImagem.length > 0) {
+          throw new Error(
+            semImagem.length === 1
+              ? "Adicione uma foto para o adicional sem imagem."
+              : `Adicione uma foto para os ${semImagem.length} adicionais sem imagem.`,
+          );
+        }
+
         if (adicionaisNovos.length > 0) {
           await criarExtrasServico(
             resolvedItemId,
@@ -471,6 +485,7 @@ function useFormItem(itemId?: string) {
 
       navigate("/painel/itens");
     } catch (erro) {
+      console.error("Erro detalhado ao salvar item:", erro);
       setErroSalvar(
         erro instanceof Error ? erro.message : "Erro ao salvar o item.",
       );

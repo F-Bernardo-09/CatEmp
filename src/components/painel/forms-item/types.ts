@@ -14,6 +14,8 @@ export interface AdicionalServico {
   nome: string;
   precoMinimo: string;
   imagem: File | null;
+  /** true = adicionado agora no formulário; false = carregado do banco (edição) */
+  novo: boolean;
 }
 
 export interface DadosFormulario {
